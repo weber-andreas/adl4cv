@@ -1,0 +1,12 @@
+*.out
+*.aux
+*.tcp
+*.log
+*.tps
+*.synctex
+*.fls
+*.fdb_latexmk
+*.gz
+
+.DS_Store
+.vscode/

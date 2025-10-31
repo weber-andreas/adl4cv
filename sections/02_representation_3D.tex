@@ -1,0 +1,39 @@
+\section{3D Data Representation}
+
+\begin{itemize}
+    \item Explicit Representations: Voxel grids, Point Clouds, Polygonal Meshes
+    \item Implicit Representations: Signed Distance Functions (SDFs), Occupancy Networks
+\end{itemize}
+
+
+\subsection{Volumetric Grids}
+
+\textbf{Volumetric Data Structures}
+\begin{itemize}
+    \item Occupancy grids
+    \item Ternary grids (2-D triangular coordinate system, e.g., Barycentric coordinate)
+    \item (Signed) Distance fields
+\end{itemize}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item Simple data structure
+    \item Encode free space and distance fields
+    \item Naturally extend 2D CNNs and other concepts
+\end{itemize}
+
+\textbf{Disadvantages:}
+\begin{itemize}
+    \item High memory consumption (cubic growth), a lot is used for empty space the higher the resolution
+    \item Require a lot of processing time (use sliding window or fully-convolutions)
+\end{itemize}
+
+\subsection{Point Clouds}
+
+\subsection{Polygonal Meshes}
+
+
+
+\subsection{Signed Distance Functions (SDFs)}
+
+\subsection{Occupancy Networks}
