@@ -6,15 +6,7 @@ Summary for TUM lecture "Autonomous Vehicle Perception". [Download PDF](https://
 
 The summary contains the following content:
 
-- [x] Sensors
-- [] Calibration
-- [] Localization
-- [] Odometry
-- [] SLAM
-- [] Segmentation
-- [] Detection
-- [] Fusion
-- [] Tracking
-- [] Prediction
-- [] End-to-End Perception and Prediction
-- [] Teleoperation
+- [x] Recap: Deep Learning
+- [x] Explicit Representations: 3D Representations for Deep Learning
+- [x] Implicit Representation: Neural Fields
+- [ ] NeRFs: Neural Radiance Fields
