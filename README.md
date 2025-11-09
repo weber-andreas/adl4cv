@@ -1,6 +1,6 @@
-# Autonomous Vehicle Perception (ED150047)
+# Advanced Deep Learning for Computer Vision
 
-Summary for TUM lecture "Autonomous Vehicle Perception". [Download PDF](https://github.com/weber-andreas/autonomous-driving)
+Summary for TUM lecture "Advanced Deep Learning for Computer Vision (IN2390)". [Download PDF](https://github.com/weber-andreas/adl4cv)
 
 ## Content
 
