@@ -1,0 +1,111 @@
+\section{Neural Radiance Fields (NeRF)}
+\begin{itemize}
+    \item Neural Radiance Field (NeRF) is a neural network-based representation for 3D scenes that encodes both geometry and appearance.
+    \item Enables photo-realistic novel view sybnthesis from a sparse set of input images.
+    \item Now-standard approach to neural volumetric rendering.
+\end{itemize}
+\href{https://arxiv.org/abs/2003.08934}{Neural Radiance Fields (NeRF), Mildenhall et al., ECCV 2020}
+
+\subsection{Core Idea}
+\begin{itemize}
+    \item NeRF represents a scene as a continuous 5D function:
+    \[
+    F_\theta : (x,y,z,\theta,\phi) \rightarrow (\sigma, \mathbf{c})
+    \]
+    \item 5D Input:
+    \begin{itemize}
+        \item $(x,y,z)$: 3D position
+        \item $(\theta,\phi)$: viewing direction
+    \end{itemize}
+    \item Outputs (MLP):
+    \begin{itemize}
+        \item $\mathbf{c}$: emitted color at sample point perceived from direction
+        \item $\sigma$: volume density (chance of absorption at specific location)
+    \end{itemize}
+    \item Volumetric rendering allows to reconstruct the final image using sampled points along camera rays.
+    \item All steps are end-to-end differentiable, allowing training via gradient descent.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/NeRF_function.jpeg}
+    \label{fig:NeRF_function}
+\end{center}
+
+\begin{itemize}
+    \item Neural: Use a Neural Network as scene representation instead of explicit data structures.
+    \item Volumetric: continuous, differentiable rendering model without concrete surface representation (similar to a cloud of particles).
+    \item Rendering: compute color along rays through 3D space.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/NeRF_bunny.jpeg}
+    \label{fig:NeRF_bunny}
+\end{center}
+
+\subsection{Probabilistic Interpretation}
+
+\begin{itemize}
+    \item Ray traveling through scene hits a particle at distance $t$, where color $c(t)$ returned.
+    \item Probability of hitting a particle at small interval $dt$ at distance $t$: $\sigma(t) dt$
+    \item Probability of not hitting any particle before distance $t$ (Transmittance): $T(t)$
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/NeRF_probabilistic1.jpeg}
+    \label{fig:NeRF_probabilistic}
+\end{center}
+\begin{itemize}
+    \item P[no hit before t + dt] = P[no hit before t] * P[no hit at t]
+    \item $T(t + dt) = T(t) * (1 - \sigma(t) dt)$
+\end{itemize}
+\[
+T(t+dt) = T(t)\bigl(1 - \sigma(t)\,dt\bigr)
+\]
+Solve via Taylor Expansion:
+\[
+T(t+dt) \approx T(t) + T'(t)\,dt = T(t) - T(t)\sigma(t)\,dt
+\]
+\[
+\frac{T'(t)}{T(t)}\,dt = -\sigma(t)\,dt
+\]
+\[
+\int_{t_0}^{t} \frac{T'(s)}{T(s)}\,ds = -\int_{t_0}^{t} \sigma(s)\,ds
+\]
+\[
+\log T(t) = -\int_{t_0}^{t} \sigma(s)\,ds
+\]
+\[
+T(t) = \exp\!\left( -\int_{t_0}^{t} \sigma(s)\,ds \right)
+\]
+This gives P[first hit at t]:
+\[
+p(t) = T(t) \ * \sigma(t)dt
+\]
+To get the expected color returned by the ray, we need to integrate over all sampling points $t_i$ along the ray:
+\[
+C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt
+\]
+Note the nested integral, since $T(t)$ itself is an integral over density $\sigma(s)$.
+
+\subsection{Training}
+\begin{itemize}
+    \item NeRF is trained via supervised inverse rendering using ground-truth images.
+    \item Loss:
+    \[
+    \mathcal{L} = \sum_{\text{rays}} \left\| C_{\text{pred}} - C_{\text{gt}} \right\|_2^2
+    \]
+    \item Requires known camera poses (typically estimated with COLMAP).
+\end{itemize}
+
+\subsection{Advantages}
+\begin{itemize}
+    \item Continuous, high-resolution scene representation.
+    \item High-quality novel-view synthesis with realistic lighting and specularities.
+    \item Compact representation: scene stored in MLP weights.
+\end{itemize}
+
+\subsection{Limitations (Original NeRF)}
+\begin{itemize}
+    \item Slow training and rendering due to MLP evaluations on every ray sample.
+    \item Static scenes only.
+    \item Requires accurate camera pose estimation.
+\end{itemize}
