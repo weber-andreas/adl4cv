@@ -86,15 +86,53 @@ C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt
 \]
 Note the nested integral, since $T(t)$ itself is an integral over density $\sigma(s)$.
 
-\subsection{Training}
-\begin{itemize}
-    \item NeRF is trained via supervised inverse rendering using ground-truth images.
-    \item Loss:
-    \[
-    \mathcal{L} = \sum_{\text{rays}} \left\| C_{\text{pred}} - C_{\text{gt}} \right\|_2^2
-    \]
-    \item Requires known camera poses (typically estimated with COLMAP).
-\end{itemize}
+\subsection{Discrete Integration (Approximation)}
+Sampling at discrete points $t_i$ along the ray:
+\[
+ C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt \approx \sum_{i=1}^{N} T_i \, \alpha_i \, c_i
+\]
+This is differentiable w.r.t. $c$, $\sigma$.
+Where: $\alpha_i$ are the length of the integral at sample point $t_i$:
+
+\begin{center}
+    \includegraphics[width=0.75\columnwidth]{images/NeRF_probabilistic_discrete.jpeg}
+    \label{fig:NeRF_probabilistic_discrete}
+\end{center}
+
+How much light is blocked earlier along the ray:
+\[
+T_i = \prod_{j=1}^{i-1} (1 - \alpha_j)
+\]
+How much light is contributed by ray segment $i$:
+\[
+\alpha_i = 1 - \exp(-\sigma_i \delta_i)
+\]
+
+Since the rendering weights $T_i$ and $\alpha_i$ are dependent on the points AND viewing direction:
+\[
+C \approx \sum_{i=1}^{N} \color{red}{T_i} \, \color{red}{\alpha_i} \, \color{black}{c_i}
+\]
+\[
+w_i = T_i \, \alpha_i
+\]
+
+\textbf{Rendering Weight PDF}:
+The distribution of weights can be used to compute expected depth and uncertainty:
+\[
+\bar{t} = \sum_{i=1}^{N}  w_i \, t_i
+\]
+where $t_i$ is just the from the camera to the sample point $i$.
+
+\subsection{General Architecture}
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/NeRF_general_architecture.jpeg}
+    \label{fig:NeRF_general_architecture}
+\end{center}
+However, MLP are not required. There are works that use spares voxel grids and spherical harmonics.
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/NeRF_alternative.jpeg}
+    \label{fig:NeRF_alternative}
+\end{center}
 
 \subsection{Advantages}
 \begin{itemize}
@@ -103,9 +141,37 @@ Note the nested integral, since $T(t)$ itself is an integral over density $\sigm
     \item Compact representation: scene stored in MLP weights.
 \end{itemize}
 
+
 \subsection{Limitations (Original NeRF)}
 \begin{itemize}
     \item Slow training and rendering due to MLP evaluations on every ray sample.
-    \item Static scenes only.
-    \item Requires accurate camera pose estimation.
+    \item Challenges with unknown or inaccurate camera poses
+    \item Dynamic scenes and dynamic lighting are complicated to model.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.75\columnwidth]{images/NeRF_inaccurate_camera_poses.jpeg}
+    \label{fig:NeRF_inaccurate_camera_poses}
+\end{center}
+
+\textbf{Appearance Embedding}
+Serves as a robust solution to learn a latent representation of varying appearance conditions (lighting, weather, etc.)
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/NeRF_apperance_embedding.jpeg}
+    \label{fig:NeRF_apperance_embedding}
+\end{center}
+
+\subsection{NeRFs vs 3D Meshes}
+NeRFs are good for \textbf{Reconstruction}:
+\begin{itemize}
+    \item Optimization-based
+    \item Need good gradients
+    \item Not just for surface representation but also for depth, normals
+\end{itemize}
+
+3D Meshes are good for \textbf{Rendering}:
+\begin{itemize}
+    \item Fast rendering of surfaces (only)
+    \item Efficient
+    \item No gradients needed
 \end{itemize}
