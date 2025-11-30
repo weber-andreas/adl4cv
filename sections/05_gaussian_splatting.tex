@@ -1,0 +1,168 @@
+\section{Gaussian Splatting}
+\subsection{Point-Based Splatting Surfels}
+Belong to traditional point-based graphics methods.
+
+\textbf{Definition}
+Surfels (surface elements) are 3D points that approximate local surface patches.  
+\begin{itemize}
+    \item position $(x, y, z)$,
+    \item a surface normal,
+    \item a radius for disc size,
+    \item color and optional confidence.
+\end{itemize}
+
+
+\textbf{Rendering Principle:}
+\begin{enumerate}
+    \item Project each surfel center into the camera.
+    \item Render its elliptical footprint.
+    \item Blend footprints in depth order (front to back): Gaussian kernel.
+    \item Moving the camera closer scales the discs accordingly.
+\end{enumerate}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item No mesh connectivity required.
+    \item Robust to noisy or incomplete geometry.
+    \item Projection step of each point into image can be parallelized.
+    \item (Almost) real-time rendering feasible.
+\end{itemize}
+
+\textbf{Limitations:}
+\begin{itemize}
+    \item Limited handling of transparency.
+    \item Not volumetric; represents only surfaces.
+    \item Blending requires heuristics and is not fully differentiable.
+\end{itemize}
+
+\subsection{Gaussian Splatting}
+
+\textbf{3D Gaussian Splatting} represents a scene with anisotropic 3D Gaussian ellipsoids.  
+Each Gaussian is defined by:
+\begin{itemize}
+    \item mean (3D center),
+    \item covariance matrix (shape, scale, and orientation),
+    \item color (often spherical harmonics),
+    \item opacity.
+\end{itemize}
+
+\textbf{Spherical Harmonics}:
+Are a family of smooth, wave-like functions defined on the surface of a sphere.
+
+\textbf{Overview}
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/gaussian_splatting.jpeg}
+    \label{fig:gaussian_splatting}
+\end{center}
+
+\begin{itemize}
+    \item Initialization: sparse structure from motion points are converted into 3D Gaussians
+    \item Rendering Loop: \begin{itemize}
+        \item The camera defines the viewpoint for rendering
+        \item 3D Gaussians are projected into 2D image space
+    \end{itemize}
+    \item Differentiable Tile Rasterer: \begin{itemize}
+        \item Sort Gaussians by depth
+        \item Split screen into tiles for efficient rendering
+        \item Alpha-blending: Blend Gaussians front-to-back using their opacities
+        \item Fully differentiable: allows gradient-based optimization
+    \end{itemize}
+    \item Optimization: \begin{itemize}
+        \item There is no neural network involved, optimization is performed directly on Gaussian parameters.
+        \item Compare rendered image to ground truth: Photometric Loss
+        \item Multi-view constraint: use multiple images from different viewpoints
+        \item Backpropagate errors to update Gaussian parameters (position, shape, color, opacity)
+        \item To get a valid covariance matrix, optimize its decomposition $\Sigma = RSS^TR^T$
+    \end{itemize}
+    \item Adaptive Density Control: \begin{itemize}
+        \item Add new Gaussians in high-error regions
+        \item Remove Gaussians in low-importance areas
+        \item Split large Gaussians in high-variance regions
+        \item Clone Gaussians in underfilled regions
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Rendering Principle}
+\begin{enumerate}
+    \item \textbf{Sort Gaussians}: Globally based on depth from camera.
+    \item \textbf{Splat}: Compute the shapes of the Gaussian after projection into 2D.
+    \item \textbf{Blend}: Perform front-to-back alpha composite.
+\end{enumerate}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item NeRF-level quality with real-time rendering.
+    \item Fully differentiable projection and blending.
+    \item Supports volumetric effects (soft edges, transparency).
+    \item Can be optimized end-to-end from images.
+\end{itemize}
+
+\textbf{Limitations:}
+\begin{itemize}
+    \item No explicit surface mesh.
+    \item Memory usage can grow with dense scenes.
+    \item Topology changes are harder to capture.
+\end{itemize}
+
+\subsection{Dynamic Scene Representation}
+Make Gaussians move over time:
+\textbf{Fixed Parameters}:
+\begin{itemize}
+    \item Scale
+    \item Color
+    \item Opacity
+\end{itemize}
+These get optimized on the first frame and after that stay constant.
+\textbf{Time-Varying Parameters}:
+\begin{itemize}
+    \item 3D Position
+    \item 3D Rotation
+\end{itemize}
+Optimize for each timestep relative to the previous.
+
+\subsection{Surfels vs Gaussians}
+
+\textbf{Surfels}: represent surface discs;  
+\textbf{Gaussians}: represent smooth volumetric blobs.
+
+\begin{itemize}
+    \item Surfels are 2D oriented patches.
+    \item Gaussians are 3D ellipsoids that naturally project to 2D.
+    \item Surfels require heuristic blending; Gaussians use volumetric accumulation.
+    \item Gaussians allow end-to-end differentiable optimization.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/surface_vs_gaussian.jpeg}
+    \label{fig:surface_vs_gaussian}
+\end{center}
+
+\textbf{Surface Splatting:}
+
+\[
+c = \frac{\sum_{i \in \mathcal{N}} c_i w_i}{\sum_{i \in \mathcal{N}} w_i}
+\]
+Weighted average of colors $c_i$ with weights $w_i$. Simple normalization, no opacity.
+
+\textbf{Volume Splatting (Alpha Compositing):}
+\[
+c = \sum_{i \in \mathcal{N}} c_i \alpha_i \prod_{j=1}^{i-1} (1 - \alpha_j w_j)
+\]
+\begin{itemize}
+    \item Front-to-back blending where $\alpha_i$ is opacity of splat $i$. 
+    \item The product term $\prod_{j=1}^{i-1} (1 - \alpha_j w_j)$ is the transmittance - how much light passes through all previous splats.\\
+          Similar to NeRF volume rendering equation.
+    \item Each splat contributes its color $c_i$ scaled by its opacity $\alpha_i$ and the accumulated transparency from splats in front.
+\end{itemize}
+
+ 
+
+\subsection{Summary}
+Gaussian Splatting can be seen as a hybrid between Neural Radiance Fields and 3D Meshes
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/gaussian_splatting_hybrid.jpeg}
+    \label{fig:gaussian_splatting_hybrid}
+\end{center}
+\textbf{Fundamental Works}\\
+\href{https://www.cs.umd.edu/~zwicker/publications/SurfaceSplatting-SIG01.pdf}{Surface Splatting, Zwicker, 2001}
+\href{https://arxiv.org/pdf/2308.04079}{3D Gaussian Splatting for Real-Time Radiance Field Rendering, Kerbl, 2023}
