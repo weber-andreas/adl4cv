@@ -1,0 +1,200 @@
+\columnbreak
+\section{Conditional Generative Adversarial Networks}
+
+\begin{itemize}
+    \item Extend GANs by conditioning both the generator and discriminator on additional information $y$.
+    \item Instead of learning a mapping $z \rightarrow x$, cGANs learn a mapping $(x_{\text{cond}}, z) \rightarrow y$, which allows controlled generation, semantic manipulation, and domain transfer.
+\end{itemize}
+
+\textbf{Motivation}
+\begin{itemize}
+    \item Have control over the output space.
+    \item Make the latent manifold semantically meaningful.
+    \item Enable tasks such as sketch-based modeling or image-to-image translation.
+\end{itemize}
+
+
+\subsection{Manipulating the Latent Manifold}
+
+\begin{itemize}
+    \item GAN Manifold are very smoothing
+    \item Well suited for latent space interpolation and manipulation of feature space
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/GAN_interpolation.jpeg}
+    \label{fig:GAN_interpolation}
+\end{center}
+
+
+\begin{itemize}
+    \item It is not enough to just condition the generator on additional information $y$.
+    \item The discriminator must also be conditioned on $y$ to ensure that the generated output corresponds to the conditioning input.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/GAN_conditioning.jpeg}
+    \label{fig:GAN_conditioning}
+\end{center}
+
+
+\textbf{iGANs}
+\textbf{Interactive GANs} aim to project real images onto a GAN's latent manifold for editing.
+\begin{itemize}
+    \item Projection: optimize $z$ so that $G(z)$ reconstructs a real image.
+    \item Editing: modify the latent vector using user guidance constraints.
+    \item Transfer: interpolate between latent codes and transfer geometric/color edits.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/iGAN.jpeg}
+    \label{fig:iGAN}
+\end{center}
+
+\begin{itemize}
+    \item Projecting a real image onto a GAN's latent space is a highly non-convex optimization problem
+    \item Without a good starting point the optimization will almost always get stuck in a poor local minimum.
+    \item Use an Inverting Network $P$ that learns to map images to latent codes.
+    \item $G(P(x^{R}, \theta{p}))$ is like an Autoencoder with a fixed decoder G
+    \item This ensures faster convergence and better reconstruction quality.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/iGAN_initialization.jpeg}
+    \label{fig:iGAN_initialization}
+\end{center}
+
+\textbf{iGAN Editing}  
+\begin{itemize}
+    \item iGAN edits $v_g$ images by optimizing the latent vector.
+    \item Given an initial code $z_0$, user edits define a guidance loss $\mathcal{L}_g$ that measures how the generated image $G(z)$ should change.  
+    \item The latent vector is updated by solving: 
+\end{itemize}
+$$z^{*} = \arg\min_z \; \mathcal{L}_g(G(z)) + \lambda \lVert z - z_0 \rVert^2 $$
+
+\begin{itemize}
+    \item Regularization term is used to ensure that the latent code does not deviate too much from the original code $z_0$.
+\end{itemize}
+
+\subsection{Paired Conditional GANs: Pix2Pix}
+
+\begin{itemize}
+    \item Generation becomes easier since more guidance is provided to $G$.
+    \item Discriminating becomes harder since $D$ has to learn a joint distribution of input and output images. 
+\end{itemize}
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/cGAN_joined_distribution.jpeg}
+    \label{fig:cGAN_joined_distribution}
+\end{center}
+
+\textbf{Paired Supervision}
+Pix2Pix uses aligned image pairs $(x,y)$ and trains a cGAN to model $x \rightarrow y$.
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/pix2pix.jpeg}
+    \label{fig:pix2pix}
+\end{center}
+
+\textbf{Objective}
+\[
+\mathcal{L} = \mathcal{L}_{\text{GAN}} + \lambda \mathcal{L}_{1}
+\]
+\begin{itemize}
+    \item GAN loss enforces realism and sharp local structure.
+    \item $\ell_1$ loss preserves global content and low frequencies.
+\end{itemize}
+
+\textbf{Architecture}
+\begin{itemize}
+    \item \textbf{UNet generator} with skip connections for structural preservation.
+    \item \textbf{PatchGAN discriminator}: operates on local patches for high-frequency detail.
+    \item Noise injected only through dropout; network often ignores explicit $z$.
+\end{itemize}
+
+\subsection{High-Resolution cGANs: Pix2PixHD}
+
+\textbf{Key Ideas}
+\begin{itemize}
+    \item Multi-scale discriminators for strong supervision across resolutions.
+    \item Coarse-to-fine generators to increase realism.
+    \item Improved stability and output resolution.
+\end{itemize}
+
+\subsection{Unpaired Conditional GANs: CycleGAN}
+
+\textbf{Motivation}
+\begin{itemize}
+    \item Paired datasets are often unavailable or expensive to collect.  
+    \item CycleGAN enables image-to-image translation without paired data by enforcing cycle consistency.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/GAN_unpaired.jpg}
+    \label{fig:GAN_unpaired}
+\end{center}
+
+
+\textbf{Cycle Consistency}
+CycleGAN introduces a cycle loss:
+\[
+F(G(x)) \approx x, \quad G(F(y)) \approx y
+\]
+\begin{itemize}
+    \item Ensures that input and output correspond meaningfully.
+    \item Prevents mode collapse in unpaired translation.
+
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/GAN_cycle_consistency.jpeg}
+    \includegraphics[width=\columnwidth]{images/GAN_cycle_loss.jpeg}
+    \label{fig:GAN_cycle_consistency}
+\end{center}
+
+
+\textbf{Architecture}
+\begin{itemize}
+    \item Two generators $G: X \rightarrow Y$ and $F: Y \rightarrow X$.
+    \item Two discriminators operating in both domains.
+\end{itemize}
+
+\subsection{3D-Aware GAN Extensions}
+
+\textbf{HoloGAN}
+\begin{itemize}
+    \item Introduces 3D representation inside the generator.
+    \item Enforces view consistency.
+    \item Camera parameters act on the latent code before rendering.
+    \item Projection unit transforms 3D features to 2D image space.
+    \item Inside projection unit is a Volumetric Renderer (NeRF-like).
+    \item This makes training very slow, every forward pass requires rendering the full 3D volume.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/HoloGAN.jpeg}
+    \label{fig:HoloGAN}
+\end{center}
+
+
+\subsection{GRAF, Pi-GAN, EG3D}
+\textbf{Neural radiance fields} and \textbf{volumetric rendering} integrate with GAN frameworks:
+\begin{itemize}
+    \item GRAF: radiance-field generator with patch-based discriminator.
+    \item Pi-GAN: progressive training for higher resolution NeRF-based synthesis.
+    \item EG3D: efficient 3D-aware GAN with tri-plane representation for fast rendering.
+    \item GGHead: replaces NeRF with 3D Gaussian Splatting for real-time 3D-aware generation.
+\end{itemize}
+
+\subsection{Summary}
+\textbf{cGANs provide controllability and structure} for generation tasks, enabling:
+\begin{itemize}
+    \item Latent-space manipulation (iGANs)
+    \item Paired image translation (Pix2Pix)
+    \item Unpaired translation (CycleGAN)
+    \item 3D-aware generation. 
+    \item Evolution started with \begin{itemize}
+        \item learned 3D features and projection units (HoloGAN, 2019)
+        \item followed by NeRF-style radiance fields (GRAF and Pi-GAN, 2021),
+        \item then using more efficient data structures like tri-plane representations (EG3D, 2022)
+        \item finally faster rendering methods like 3D Gaussian Splatting (GGHead, 2024)
+    \end{itemize}
+\end{itemize}
