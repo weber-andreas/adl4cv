@@ -1,0 +1,258 @@
+\section{Sequence Modelling}
+
+\begin{itemize}
+    \item \textbf{Text as Sequences:} Sequences are natural representations for text data, utilized for classification (sentiment analysis), translation, and generation.
+    \item \textbf{Images as Sequences:} Images can also be treated as sequences by breaking them into patches for classification or reconstruction tasks.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/text_as_sequence.jpeg}
+    \includegraphics[width=0.5\columnwidth]{images/image_as_sequence1.jpeg}
+    \includegraphics[width=0.7\columnwidth]{images/image_as_sequence2.jpeg}
+    \label{fig:text_as_sequence}
+\end{center}
+
+\subsection{Recurrent Neural Networks (RNNs)}
+\begin{itemize}
+    \item RNNs process data sequentially and maintain a hidden state $h_t$ that acts as memory.
+    \item They can be "unrolled" in time, sharing weights $A$ across time steps.
+    \item \textbf{Limitation:} While good at short sequences, RNNs suffer from the \textbf{long-term dependency issue} (vanishing/exploding gradients), making it difficult to relate distinct information in long sequences.
+    \item When training RNN over multiple time steps, the gradient must be back propagated through each time step.
+    \item 
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/rnn.jpeg}
+    \includegraphics[width=0.9\columnwidth]{images/rnn2.jpeg}
+    \label{fig:rnn}
+\end{center}
+
+\textbf{Back Propagation Through Time}
+$\frac{\partial \mathbf{L}}{\partial W} \propto \sum_{i=0}^{T} \left( \prod_{i=k+1}^{y} \frac{\partial h_i}{\partial h_{i-1}} \right) \frac{\partial h_k}{\partial W}$
+
+\textbf{Vanishing Gradient}:
+$\left\| \frac{\partial h_i}{\partial h_{i-1}} \right\|_2 < 1$
+
+\textbf{Exploding Gradient}:
+$\left\| \frac{\partial h_i}{\partial h_{i-1}} \right\|_2 > 1$
+
+
+\subsection{Long Short-Term Memory (LSTMs)}
+
+\begin{itemize}
+    \item Designed to alleviate the long-term dependency issue.
+    \item Utilizes gating mechanisms (sigmoid $\sigma$ and tanh activations) to regulate information flow (forgetting, updating, and outputting).
+    \item However, for extremely long sequences (e.g., full documents), performance still degrades.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/lstm.jpeg}
+    \label{fig:lstm}
+\end{center}
+
+\section{Attention Mechanism}
+
+\textbf{Motivation}
+\begin{itemize}
+    \item "Not all words are born equal." In a sequence, certain words are more important for predicting specific outputs (e.g., "France" is crucial for predicting "French").
+    \item Attention allows the model to focus on relevant parts of the input signal regardless of distance.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/language_example.jpeg}
+    \label{fig:language_example}
+\end{center}
+
+\textbf{Types of Attention}
+\begin{itemize}
+    \item \textbf{Soft Attention:} Deterministic and differentiable; attends to the entire input with weights summing to 1.\\
+                                   Standard attention used in almost all modern "Transformer" models (GPT, BERT, ViT, etc.).
+    \item \textbf{Hard Attention:} Stochastic and non-differentiable; selects a single part of the input (requires Monte Carlo estimation). \\
+                                   Used when the model is forced to should just focus on one part (e.g., image captioning).
+    \item \textbf{Self-Attention:} The signal attends to itself to learn internal dependencies.
+    \item \textbf{Cross-Attention:} Attends to another signal (e.g., an image) as side information.
+\end{itemize}
+
+\section{The Transformer}
+
+\begin{itemize}
+    \item Introduced in "Attention is All You Need" (Vaswani et al., 2017).
+    \item Replaces recurrence with self-attention mechanisms, allowing for parallel processing of sequences.
+    \item Consists of an encoder-decoder architecture, where both the encoder and decoder are stacks of identical layers.
+    \item The output are probabilities over the vocabulary for each position in the output sequence.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.6\columnwidth]{images/transformer_architecture.jpeg}
+    \label{fig:transformer_architecture}
+\end{center}
+
+\subsection{Scaled Dot-Product Attention}
+
+The core mechanism acts as a differentiable database retrieval system involving \textbf{Queries ($Q$)}, \textbf{Keys ($K$)}, and \textbf{Values ($V$)}.
+
+\begin{equation}
+    \text{Attention}(Q,K,V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\end{equation}
+
+\textbf{Input Projection (for a single token vector x)}
+\begin{align}
+q &= x \cdot W_Q \\
+k &= x \cdot W_K \\
+v &= x \cdot W_V
+\end{align}
+
+\textbf{Input Projection (Matrix form for sequence length L)}
+\begin{align}
+Q &= X \cdot W_Q \\
+K &= X \cdot W_K \\
+V &= X \cdot W_V
+\end{align}
+
+\begin{itemize}
+    \item \textbf{Dot Product $QK^T$:} Computes similarity between queries and keys.
+    \item \textbf{Scaling $\frac{1}{\sqrt{d_k}}$:} Prevents the dot products from growing too large, which would push the softmax into regions with small gradients.
+    \item \textbf{Softmax:} Induces a probability distribution (soft indexing) over values.
+\end{itemize}
+
+\subsection{Multi-Head Attention}
+
+\begin{itemize}
+    \item Instead of a single attention function, the model projects queries, keys, and values $h$ times with different linear projections.
+    \item Allows the model to attend to different parts of the input signal simultaneously (e.g., capturing both syntactic and semantic relationships).
+    \item The outputs are concatenated and linearly projected.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/transformer_multiheads.jpeg}
+    \label{fig:transformer_multiheads}
+\end{center}
+
+\subsection{Architecture Components}
+
+\begin{itemize}
+    \item \textbf{Encoder-Decoder Structure:} The original architecture consists of an encoder stack and a decoder stack.
+    \item \textbf{Positional Encoding:} Since there is no recurrence, fixed trigonometric embeddings (sine/cosine) are added to input embeddings to provide sequence order information.
+    \begin{align}
+        PE_{(pos, 2i)} &= \sin(pos / 10000^{2i/d_{model}}) \\
+        PE_{(pos, 2i+1)} &= \cos(pos / 10000^{2i/d_{model}})
+    \end{align}
+    \item \textbf{Masking:} Used in the decoder (self-attention) to prevent attending to future tokens (causal modeling).
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/sequence_models_computational_complexity.jpeg}
+    \label{fig:sequence_models_computational_complexity}
+\end{center}
+
+
+\subsection{BERT}
+Bidirectional Encoder Representations from Transformers
+\begin{itemize}
+    \item A large transformer encoder designed for representation learning.
+    \item \textbf{Input Representation:} Sum of Token Embeddings, Segment Embeddings (sentence A vs B), and Position Embeddings.
+    \item \textbf{Pre-training Objectives:} Self-supervised learning using two tasks:
+    \begin{enumerate}
+        \item Masked Language Modelling (MLM): Randomly mask words (e.g., 15\%) and predict them using bidirectional context. No human annotation required.
+        \item Next Sentence Prediction (NSP): Predict if sentence B follows sentence A (binary classification).
+    \end{enumerate}
+\end{itemize}
+
+
+\begin{itemize}
+    \item Position Embedding: Indicate position of each token in the sequence.
+    \item Segment Embedding: Differentiate between sentences in tasks involving sentence pairs.
+    \item Token Embedding: Standard word embeddings (e.g., WordPiece).
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/transformer_multiheads.jpeg}
+    \label{fig:transformer_multiheads}
+\end{center}
+
+
+\subsection{GPT (Generative Pre-trained Transformer)}
+\textbf{Important Elements:}
+\begin{itemize}
+    \item Tokenization/dictionary
+    \item Sequence Model (transformer)
+    \item Training Scheme (multimodal, cross entropy loss, context window)
+\end{itemize}
+
+\textbf{Dictionary}
+\begin{itemize}
+    \item Two different extreme cases for tokenization:
+    \begin{itemize}
+        \item Character-level: small vocabulary (e.g. 26 tokens or ASCII = 256 tokens) $\Rightarrow$ Context problem of attention.
+        \item Word-level: vocabulary explodes but sentences consist of few tokens $\Rightarrow$ Out-of-vocabulary problem.
+    \end{itemize}
+    \item Uses Byte Pair Encoding (BPE) to create a subword vocabulary.
+    \item Balances vocabulary size.
+\end{itemize}
+
+\textbf{Context Window}
+\begin{itemize}
+    \item Models long-range dependencies using a fixed-size context window (e.g., 1024 tokens).
+    \item Attention is computed only within this window.
+    \item Longer sequences are processed by sliding the window.
+\end{itemize}
+
+
+\subsection{Vision Transformers (ViT)}
+\begin{itemize}
+    \item Replaces CNNs with a pure transformer architecture for image classification.
+    \item \textbf{Patching:} Images are split into fixed-size patches (e.g., $16 \times 16$), flattened, and linearly projected to form a sequence of vectors.
+    \item \textbf{Positional Embeddings:} Added to patch embeddings to retain spatial information.
+    \item \textbf{Class Token:} A learnable `[class]` token is prepended; its output state serves as the image representation for classification (similar to BERT's `[CLS]`).
+    \item \textbf{Interpretability:} Attention maps visualize which image parts are relevant for prediction.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/vision_transformer.jpeg}
+    \label{fig:vision_transformer}
+\end{center}
+
+
+\subsection{Masked Auto-Encoder (MAE)}
+
+\begin{itemize}
+    \item Self-supervised learner acting as an auto-encoder for ViTs.
+    \item \textbf{Asymmetric Design:}
+        \begin{itemize}
+            \item \textbf{Encoder:} Processes \textit{only} the visible (unmasked) patches. Since a large ratio (e.g., 75\%) is masked, this is computationally efficient.
+            \item \textbf{Decoder:} Reconstructs the full image from latent representation and mask tokens.
+        \end{itemize}
+    \item \textbf{Loss:} MSE ($L_2$) loss computed only on masked patches.
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/masked_input_image.jpeg}
+    \label{fig:masked_input_image}
+\end{center}
+
+
+
+\subsection{Vision-Language Transformers (ViLT)}
+
+\begin{itemize}
+    \item Simplified architecture without region supervision or deep convolutional encoders.
+    \item \textbf{Input:} Concatenation of image patches and text embeddings.
+    \item \textbf{Objectives:} Image Text Matching (ITM) and Masked Language Modeling (MLM).
+\end{itemize}
+
+\subsection{Detection Transformer (DETR)}
+
+\begin{itemize}
+    \item End-to-end object detection treating detection as a set prediction problem.
+    \item \textbf{Backbone + Transformer:} CNN extracts features, flattened and fed into Transformer Encoder-Decoder.
+    \item \textbf{Object Queries:} Learnable positional embeddings that the decoder transforms into bounding box predictions.
+    \item \textbf{Bipartite Matching:} Uses the Hungarian algorithm to assign predictions to ground truth one-to-one, eliminating the need for Non-Maximum Suppression (NMS).
+\end{itemize}
+
+\section{Summary}
+
+Transformers have revolutionized sequential modeling, moving from RNNs/LSTMs to Attention-based architectures.
+\begin{itemize}
+    \item \textbf{NLP:} Dominance of BERT (Encoder) and GPT (Decoder) models.
+    \item \textbf{Vision:} ViTs treat images as patch sequences, performing comparably to CNNs with sufficient data/pre-training.
+    \item \textbf{Multimodal:} Unified architectures (ViLT) and new paradigms for detection (DETR) streamline cross-modal learning and structural prediction.
+\end{itemize}
