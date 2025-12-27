@@ -1,0 +1,165 @@
+\section{Large Reconstruction Models (LRM)}
+
+\textbf{Reconstruction vs. Generation}
+\begin{itemize}
+    \item \textbf{Reconstruction:} Focuses on creating accurate 3D representations from specific inputs \begin{itemize}
+        \item Image-to-3D
+        \item Text-to-3D
+        \item Video-to-3D
+        \item Multi-view-to-3D
+    \end{itemize}
+    \item \textbf{Generation:} Involves creating new 3D content from learned distributions
+\end{itemize}
+
+
+
+\begin{itemize}
+    \item \textbf{Shift to Feed-Forward Networks:} Unlike traditional reconstruction which often requires per-scene optimization, Large Reconstruction Models (LRMs) use Feed-Forward Networks trained on large datasets to generalize to new inputs. 
+    \item \textbf{Input and Output:} These models accept inputs like single images, text, or sparse views and output 3D representations such as Neural Radiance Fields (NeRF) or 3D Gaussian Splats. 
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/lrm_feed_forward.jpeg}
+    \label{fig:lrm_feed_forward}
+\end{center}
+
+\subsection{PixelNeRF}
+
+PixelNeRF introduced the concept of conditioning NeRFs on input images for generalization. 
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/pixel_nerf.jpeg}
+    \label{fig:pixel_nerf}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{Encoder:} A CNN encoder extracts feature maps from the input image. 
+    \item \textbf{Projection and Sampling:} To evaluate a point in 3D space, it is projected onto the input image plane. 
+    \item \textbf{Feature Interpolation:} Image features are bilinearly interpolated at the projected coordinates and fed into an MLP alongside the 3D position and view direction. 
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/pixelnerf_architecture.jpeg}
+    \includegraphics[width=0.9\columnwidth]{images/pixelnerf_method.jpeg}
+    \includegraphics[width=0.9\columnwidth]{images/pixelnerf_method2.jpeg}
+    \label{fig:pixelnerf_architecture}
+\end{center}
+
+\begin{itemize}
+    \item Fully-connected ResNet architecture
+    \item Important: Position and view direction are in input coordinate system
+    \item 5 Resnet blocks for a single-image model
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.9\columnwidth]{images/pixelnerf_model_architecture.jpeg}
+    \label{fig:pixelnerf_model_architecture}
+\end{center}
+
+\subsection{Large Reconstruction Model (LRM)}
+
+LRM scales the concept of PixelNeRF using a transformer-based architecture for single-image reconstruction. 
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/large_reconstruction_model_overview.jpeg}
+    \label{fig:large_reconstruction_model_overview}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{DINO Encoder:} The input image ($512\times512$) is patchified and encoded using a pre-trained Vision Transformer (ViT-DINO). 
+    \item \textbf{Image-to-Triplane Decoder:} A large transformer decoder converts learnable positional embeddings into triplane features ($3\times32\times32\times1024$). 
+    \item \textbf{Conditioning Mechanisms:}
+    \begin{itemize}
+        \item \textbf{Cross-Attention:} Uses input image patches to control fine-grained details (geometry and color). 
+        \item \textbf{Modulation:} Uses camera features to control the global orientation and distortion of the shape via adaptive layer normalization. 
+    \end{itemize}
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/lrm_image_encoder.jpeg}
+    \includegraphics[width=0.8\columnwidth]{images/lrm_triplane_decoder.jpeg}
+
+    \label{fig:lrm_image_encoder}
+\end{center}
+
+\textbf{Extract Triplane Features for 3D Point}
+\begin{itemize}
+    \item Project point onto each plane
+    \item Obtain one vector per triplane
+    \item Input 3 concatenated vectors to MLP to get density and color of the point
+    \item Perform volumetric rendering to get final pixel color of novel view
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/lrm_rendering.jpeg}
+    \label{fig:lrm_rendering}
+\end{center}
+
+\textbf{Results}
+\begin{center}
+    \includegraphics[width=0.8\columnwidth]{images/lrm_results.jpeg}
+    \label{fig:lrm_results}
+\end{center}
+
+\subsection{Large Gaussian Reconstruction Model(GRM)}
+GRM adapts the LRM architecture to output 3D Gaussian Splats for efficient rendering. 
+
+\begin{itemize}
+    \item \textbf{Pixel-aligned Gaussians:} The model predicts parameters for one Gaussian per pixel (position, rotation, scale, opacity, color). 
+    \item \textbf{Vision transformer:} Process the camera images (e.g. 4 views) and poses into a 3D representation (Plückler Rays)
+    \item \textbf{Upsampler:} A transformer-based upsampler with PixelShuffle layers is used to increase resolution and generate high-fidelity Gaussian maps. 
+    \item \textbf{Pixel-aligned Gaussians:} Each pixel in the input image corresponds to a Gaussian in 3D space, allowing for detailed reconstruction. Easier to learn and rendering in real-time.
+\end{itemize}
+
+\begin{enumerate}
+    \item Back-project pixel-aligned Gaussians into 3D space using camera intrinsics and extrinsics.
+    \item Render the Gaussians from novel viewpoints using differentiable Gaussian Splatting techniques
+    \item Supervise novel views with (color + perceptual loss)
+\end{enumerate}
+
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/grm_overview.jpeg}
+    \label{fig:grm_overview}
+\end{center}
+
+\subsection{Long-LRM: Long-Sequence Modeling}
+
+Standard transformers struggle with the quadratic complexity $O(L^2)$ required for processing long sequences (e.g., many input views). 
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/long_lrm.jpeg}
+    \label{fig:long_lrm}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{Mamba2 Backbone:} Utilizes State Space Models (Mamba2) which scale linearly $O(L)$ with sequence length. 
+    \item \textbf{Hybrid Block:} Combines 7 Mamba2 blocks with 1 Transformer block to balance efficient sequence scanning with global attention. 
+    \item \textbf{Token Merge:} Reduces sequence length by reshaping and convolving tokens, improving efficiency for high-resolution wide-coverage scenes. 
+    \item \textbf{Decode Gaussians:} Decode output tokens to per-pixel Gaussian parameters \begin{itemize}
+        \item At training time prune to fixed number of Gaussians (e.g., 16k)
+        \item At inference time prune by opacity
+        \end{itemize}
+    \end{itemize}
+
+\textbf{Mamba2 Block}
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/mamba_block.jpeg}
+    \label{fig:mamba_block}
+\end{center}
+\begin{itemize}
+    \item Mamba2 block is designed for language tasks, scans through sequence from left to right (suboptimal form images)
+    \item Vision Mamba takes bi-directional context into account by processing the sequence both ways and averaging the results
+\end{itemize}
+
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/long_lrm_loss.jpeg}
+    \label{fig:long_lrm_loss}
+\end{center}
+
+\subsection{Avat3r}
+An application of Large Reconstruction Models specifically for generating high-fidelity 3D head avatars from sparse inputs (e.g., 4 phone images). 
+\begin{center}
+    \includegraphics[width=\columnwidth]{images/avat3r.jpeg}
+    \label{fig:avat3r}
+\end{center}
