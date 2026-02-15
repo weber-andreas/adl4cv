@@ -1,158 +1,140 @@
 \section{Neural Fields}
 \begin{itemize}
-    \item Field: quantity defined for all spatial or temporal coordinates
-    \item Neural Field: represent a field represented by a neural network
+	\item \textcolor{orange}{Field}: quantity defined for all spatial or temporal coordinates
+	\item \textcolor{orange}{Neural Field}: field representation encoded by a neural network
 \end{itemize}
 
 \subsection{MLP as Data Structure}
 \begin{itemize}
-    \item MLP can represent complex signals (images, 3D shapes, etc)
-    \item Sparse encoding of signal, shifts capacity where it needs it (based on optimization)
-    \item Can be used for compression, denoising, super-resolution, etc.
-    \item Often also referred to as Implicit Neural Representation (INR) or Coordinate-based MLP
+	\item MLP can represent complex signals (images, 3D shapes, etc)
+	\item Sparse encoding of signal, shifts capacity where it needs it (based on optimization)
+	\item Can be used for compression, denoising, super-resolution, etc.
+	\item Often also referred to as Implicit Neural Representation (INR) or Coordinate-based MLP
 \end{itemize}
 
 \subsection{Implicit vs Explicit}
 Implicit Neural Representation: Misleading since only the data structure is implicit not the function itself.
 \begin{align}
-\text{Explicit function:} \quad & f(x) = y \\
-\text{Implicit function:} \quad & x^2 + y^2 - 1 = 0
+	\text{Explicit function:} \quad & f(x) = y          \\
+	\text{Implicit function:} \quad & x^2 + y^2 - 1 = 0
 \end{align}
 
 \textbf{Signed Distance Field (SDF)}
-A signed distance field assigns to each point \(x \in \mathbb{R}^n\) a real value that 
-represents the distance to the closest surface, with the sign indicating whether the 
+A signed distance field assigns to each point \(x \in \mathbb{R}^n\) a real value that
+represents the distance to the closest surface, with the sign indicating whether the
 point lies inside or outside the surface:
 \[
-\mathrm{SDF}(x) =
-\begin{cases}
-< 0, & \text{inside surface}, \\
-= 0, & \text{on surface}, \\
-> 0, & \text{outside surface}.
-\end{cases}
+	\mathrm{SDF}(x) =
+	\begin{cases}
+		< 0, & \text{inside surface},  \\
+		= 0, & \text{on surface},      \\
+		> 0, & \text{outside surface}.
+	\end{cases}
 \]
 
 \textbf{Occupancy Field}
-An occupancy field assigns to each point \(x \in \mathbb{R}^n\) a binary indication 
+An occupancy field assigns to each point \(x \in \mathbb{R}^n\) a binary indication
 of whether the point lies inside the surface:
 \[
-\mathrm{Occ}(x) =
-\begin{cases}
-1, & \text{if } \mathrm{SDF}(x) \le 0, \\
-0, & \text{if } \mathrm{SDF}(x) > 0.
-\end{cases}
+	\mathrm{Occ}(x) =
+	\begin{cases}
+		1, & \text{if } \mathrm{SDF}(x) \le 0, \\
+		0, & \text{if } \mathrm{SDF}(x) > 0.
+	\end{cases}
 \]
 
 \textbf{Key Difference}
 \begin{itemize}
-    \item \textbf{SDF:} continuous-valued; encodes signed distance from the surface.
-    \item \textbf{Occupancy:} binary-valued; encodes only inside/outside.
+	\item \textbf{SDF:} continuous-valued; encodes signed distance from the surface.
+	\item \textbf{Occupancy:} binary-valued; encodes only inside/outside.
 \end{itemize}
 
 \subsection{Overfitting vs. Generalization}
 \begin{itemize}
-    \item Overfitting as an artifact of neural fields: MLPs can memorize training data without generalizing.
-    \item Overfitting as a debugging tool: helps to verify that the network architecture and training procedure are functioning correctly.
-    \item Overfitting as a goal: to represent a specific signal or shape accurately. 
+	\item Overfitting as an artifact of neural fields: MLPs can memorize training data without generalizing.
+	\item Overfitting as a debugging tool: helps to verify that the network architecture and training procedure are functioning correctly.
+	\item Overfitting as a goal: to represent a specific signal or shape accurately.
 \end{itemize}
 
 \textbf{Overfitting Single Scene}
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/overfitting_scene.jpeg}
-    \label{fig:overfitting_scene}
+	\includegraphics[width=\columnwidth]{images/overfitting_scene.jpeg}
+	\label{fig:overfitting_scene}
 \end{center}
 
 \begin{itemize}
-    \item Overfitting a single scene from multiple views
-    \item Input set of images and their camera parameters
+	\item Overfitting a single scene from multiple views
+	\item Input set of images and their camera parameters
 \end{itemize}
 
 \textbf{Overfitting Multiple Scenes}
 \begin{itemize}
-    \item Each scene should have a unique description
-    \item To prevent latent code bias in activations, either a positional encoding is required or a learned latent code (optimized during training)
-    \item learned latent code: has semantic meaning: like parametrization of Radial Basis Functions (RBFs)
-    \item Changing latent code allows interpolation between data
+	\item Each scene should have a unique description
+	\item To prevent latent code bias in activations, either a positional encoding is required or a learned latent code (optimized during training)
+	\item learned latent code: has semantic meaning: like parametrization of Radial Basis Functions (RBFs)
+	\item Changing latent code allows interpolation between data
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/overfitting_multiple_scenes.jpeg}
-    \label{fig:overfitting_multiple_scenes}
+	\includegraphics[width=\columnwidth]{images/overfitting_multiple_scenes.jpeg}
+	\label{fig:overfitting_multiple_scenes}
 \end{center}
 
 \subsection{Inductive Bias}
-Shift invariance is very important to account for bias in activation based on position/coordinate values
 \begin{itemize}
-    \item Positional encoding (Sinusoidal high-dimensional mapping of coordinates)
-    \item SIREN Activations (sinusoidal activations to represent high-frequency functions)
+	\item Standard MLPs have a bias towards learning low-frequency signals (blurry).
+	\item Also raw coordinates are biased towards absolute positions.
 \end{itemize}
 
+\textcolor{orange}{Shift invariance} is important to prevent bias in activations based on absolute coordinate values.
+\begin{itemize}
+	\item Positional encoding: Sinusoidal high-dimensional mapping of coordinates to keep the distance between coordinates meaningful  and preserve fine details
+	\item SIREN Activations: sinusoidal activations to represent high-frequency functions
+\end{itemize}
 \href{https://arxiv.org/pdf/1806.08734}{On the Spectral Bias of Neural Networks, 2018}
-    
 
-\textbf{Positional Encoding}
+
+\textbf{Positional Encoding}: \\
 Sinusoidal / learned positional encodings allow:
 \begin{itemize}
-    \item smooth distance representation,
-    \item easy extrapolation,
-    \item relative comparison (difference of phases encodes distance).
-\end{itemize}
-
-\begin{itemize}
-    \item This provides a useful inductive bias:
-          tokens that are close in sequence have similar positional embeddings.
-    \item Raw integer positions do \emph{not} provide this similarity.
+	\item[+] smooth distance representation,
+	\item[+] easy extrapolation,
+	\item[+] relative comparison (difference of phases encodes distance).
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/positional_encoding.jpeg}
-    \label{fig:positional_encoding}
+	\includegraphics[width=\columnwidth]{images/positional_encoding.jpeg}
+	\label{fig:positional_encoding}
 \end{center}
 
 \textbf{Activation Functions}
 SIREN uses sinusoidal activations to fit to high-frequency functions.
 
 \begin{center}
-    \includegraphics[width=0.6\columnwidth]{images/SIREN.jpeg}
-    \label{fig:SIREN}
+	\includegraphics[width=0.6\columnwidth]{images/SIREN.jpeg}
+	\label{fig:SIREN}
 \end{center}
 
-\subsection{Hybrid Representations}
+\textbf{Remark:}
 \begin{itemize}
-    \item \textbf{Uniform grid}
-    \begin{itemize}
-        \item Dense, regularly--sampled grid over the whole domain
-        \item Easy indexing and interpolation
-        \item Memory and computation scale poorly with resolution
-        \item Wastes resources in empty or simple regions
-    \end{itemize}
-
-    \item \textbf{Sparse grid}
-    \begin{itemize}
-        \item Only stores cells where signal / geometry is complex
-        \item Greatly reduces memory and compute, O(log(n)) access time
-        \item GPU compatible data structure
-        \item Established operations like sparse 3D convs
-        \item Requires hierarchical / hashed data structures
-        \item More complex to implement and query
-    \end{itemize}
+	\item Combining positional encoding and sinusoidal activations is not necessary
+	\item It can create a complex interference pattern that can make optimization extremely noisy
 \end{itemize}
-
-\begin{center}
-    \includegraphics[width=\columnwidth]{images/uniform_sparse_grid.jpg}
-    \label{fig:uniform_sparsegrid}
-\end{center}
-
 
 \subsection{Summary}
 \begin{enumerate}
-    \item Overfit an MLP
-    \item Positional Encoding: prevent inductive bias from coordinates
-    \item Activation Functions: non-linearities to represent high-frequency functions
+	\item Overfit an MLP
+	\item Positional Encoding: prevent inductive bias from coordinates
+	\item Activation Functions: non-linearities to represent high-frequency functions
 \end{enumerate}
 
+\vspace{0.3cm}
+\hrule
+\vspace{0.3cm}
+
+\textbf{Comparison of Network Evolution}
 \begin{itemize}
-    \item MLP: fully connected layers, connect everything with everything
-    \item CNN: local connections, weight sharing, translation equivariance
-    \item Transformer: learn which connections are important
+	\item MLP: fully connected layers, connect everything with everything
+	\item CNN: local connections, weight sharing, translation equivariance
+	\item Transformer: learn which connections are important
 \end{itemize}

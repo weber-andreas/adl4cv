@@ -4,44 +4,44 @@
 
 \textbf{Core Idea}
 \begin{itemize}
-    \item Diffusion models learn to generate data by \textbf{iterative denoising}.
-    \item Two complementary processes:
-    \begin{itemize}
-        \item \textbf{Forward diffusion:} Gradually corrupt data with Gaussian noise.
-        \item \textbf{Reverse diffusion:} Learn to remove noise step-by-step to recover data.
-    \end{itemize}
-    \item Grounded in nonequilibrium thermodynamics and probabilistic modeling.
+	\item Diffusion models learn to generate data by \textbf{iterative denoising}.
+	\item Two complementary processes:
+	      \begin{itemize}
+		      \item \textbf{Forward diffusion:} Gradually corrupt data with Gaussian noise.
+		      \item \textbf{Reverse diffusion:} Learn to remove noise step-by-step to recover data.
+	      \end{itemize}
+	\item Grounded in nonequilibrium thermodynamics and probabilistic modeling.
 \end{itemize}
 
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/diffusion.jpeg}
-    \label{fig:diffusion}
+	\includegraphics[width=\columnwidth]{images/diffusion.jpeg}
+	\label{fig:diffusion}
 \end{center}
 
 
 \textbf{Relevant Works:}\\
 \href{https://arxiv.org/abs/1503.03585}{[Sohl-Dickstein et al., Deep Unsupervised Learning using Nonequilibrium Thermodynamics, ICML 2015]}\\
 \href{https://arxiv.org/abs/2006.11239}{[Ho et al., Denoising Diffusion Probabilistic Models, NeurIPS 2020]}\\
-\href{https://arxiv.org/abs/2011.13456}{[Song et al., Score-Based Generative Modeling through Stochastic Differential Equations, ICLR 2021]}  
+\href{https://arxiv.org/abs/2011.13456}{[Song et al., Score-Based Generative Modeling through Stochastic Differential Equations, ICLR 2021]}
 
 
 
-\subsection{Forward Diffusion Process}
+\subsubsection{Forward Diffusion Process}
 
 \textbf{Markovian Noise Injection}
 \begin{itemize}
-    \item Data sample $x_0 \sim q(x)$ is progressively noised over $T$ steps.
-    \item Each step depends only on the previous one:
-    \[
-        q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \mu_t = \sqrt{1-\beta_t}x_{t-1}, \Sigma_t= \beta_t I)
-    \]
-    \item $\beta_t$ is a variance schedule (e.g., linear from $10^{-4}$ to $0.02$ over $T=1000$ steps).
+	\item Data sample $x_0 \sim q(x)$ is progressively noised over $T$ steps.
+	\item Each step depends only on the previous one:
+	      \[
+		      q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \mu_t = \sqrt{1-\beta_t}x_{t-1}, \Sigma_t= \beta_t I)
+	      \]
+	\item $\beta_t$ is a variance schedule (e.g., linear from $10^{-4}$ to $0.02$ over $T=1000$ steps).
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/denoising_diffusion.jpeg}
-    \label{fig:denoising_diffusion}
+	\includegraphics[width=\columnwidth]{images/denoising_diffusion.jpeg}
+	\label{fig:denoising_diffusion}
 \end{center}
 
 
@@ -49,79 +49,111 @@
 Inefficient to add noise step-wise.\\
 One-step prediction of a noise at a specific timestep by applying Parametrization Trick for Gaussian distributions.
 \begin{itemize}
-    \item Define $\alpha_t = 1 - \beta_t$, $\bar{\alpha}_t = \prod_{s=1}^t \alpha_s$.
-    \item Allows direct sampling from $x_0$:
-    \[
-        x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon, \quad \epsilon \sim \mathcal{N}(0,I)
-    \]
-    \item Enables efficient training by sampling arbitrary timesteps.
+	\item Define $\alpha_t = 1 - \beta_t$, $\bar{\alpha}_t = \prod_{s=1}^t \alpha_s$.
+	\item Allows direct sampling from $x_0$:
+	      \[
+		      x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon, \quad \epsilon \sim \mathcal{N}(0,I)
+	      \]
+	\item Enables efficient training by sampling arbitrary timesteps.
 \end{itemize}
 
-\subsection{Reverse Diffusion Process}
+\subsubsection{Reverse Diffusion Process}
 
 \textbf{Generative Denoising}
 \begin{itemize}
-    \item As $t \to T = \infty $, $x_T$ approaches pure Gaussian noise.
-    \item Generation starts from sampling $x_T \sim \mathcal{N}(0,I)$.
-    \item Reverse process:
-    \[
-        p_\theta(x_{t-1} \mid x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t,t), \Sigma_t)
-    \]
-    \item Since the true reverse posterior $p_\theta(x_{t-1} \mid x_t)$ is intractable, it is approximated with a parameterized model
-    \item A neural network is trained to predict the parameters of this distribution, effectively learning to denoise $x_t$ step-by-step.
-    \item Repeating this process from $t=T$ to $t=0$ produces a novel sample drawn from the original data distribution.
+	\item As $t \to T = \infty $, $x_T$ approaches pure Gaussian noise.
+	\item Generation starts from sampling $x_T \sim \mathcal{N}(0,I)$.
+	\item Reverse process:
+	      \[
+		      p_\theta(x_{t-1} \mid x_t) = \mathcal{N}(x_{t-1}; \mu_\theta(x_t,t), \Sigma_t)
+	      \]
+	\item Since the true reverse posterior $p_\theta(x_{t-1} \mid x_t)$ is intractable, it is approximated with a parameterized model
+	\item A neural network is trained to predict the parameters of this distribution, effectively learning to denoise $x_t$ step-by-step.
+	\item Repeating this process from $t=T$ to $t=0$ produces a novel sample drawn from the original data distribution.
 \end{itemize}
 
-\subsection{Training Objective}
+\subsubsection{Training Objective}
 Optimzie negative log-likelihood of training data:
 \[
-    \mathcal{L} = \mathbb{E}_{x_0, \epsilon, t}\left[-\log p_\theta(x_{t-1} \mid x_t)\right]
+	\mathcal{L} = \mathbb{E}_{x_0, \epsilon, t}\left[-\log p_\theta(x_{t-1} \mid x_t)\right]
 \]
 \textbf{Variational Lower Bound (VLB)}
 \begin{itemize}
-    \item However, direct likelihood maximization is intractable.
-    \item Optimize a variational bound decomposed into timestep-wise KL terms.
-    \item Most terms are either constant or simplified.
+	\item However, direct likelihood maximization is intractable.
+	\item Optimize a variational bound decomposed into timestep-wise KL terms.
+	\item Most terms are either constant or simplified.
 \end{itemize}
 
 \textbf{Simplified Noise Prediction Loss}
 \begin{itemize}
-    \item Instead of predicting $\mu_\theta$ (image at specific timestep), predict noise $\epsilon_\theta$:
-    \[
-        \mathcal{L}_{simple} = 
-        \mathbb{E}_{t,x_0,\epsilon}\left[\|\epsilon - \epsilon_\theta(x_t,t)\|^2\right]
-    \]
-    \item Fixed variance schedule $\Sigma_t$ simplifies training.
-    \item Leads to stable optimization and strong empirical performance.
+	\item Instead of predicting $\mu_\theta$ (image at specific timestep), predict noise $\epsilon_\theta$:
+	      \[
+		      \mathcal{L}_{simple} =
+		      \mathbb{E}_{t,x_0,\epsilon}\left[\|\epsilon - \epsilon_\theta(x_t,t)\|^2\right]
+	      \]
+	\item Fixed variance schedule $\Sigma_t$ simplifies training.
+	\item Leads to stable optimization and strong empirical performance.
+\end{itemize}
+
+\subsection{Denoising Diffusion Implicit Models (DDIM)}
+
+\textbf{Motivation}
+\begin{itemize}
+	\item DDPMs require many sequential denoising steps ($T=1000$) for high-quality generation.
+	\item DDIM accelerates sampling while maintaining quality by using a non-Markovian diffusion process.
+	\item Enables deterministic generation with fewer steps.
+\end{itemize}
+
+\href{https://arxiv.org/abs/2010.02502}{[Denoising Diffusion Implicit Models, Song et al., ICLR 2021]}
+
+\textbf{Core Idea}
+\begin{itemize}
+	\item DDPM sampling is inherently stochastic due to added noise at each step.
+	\item DDIM proposes a non-Markovian reverse process that is deterministic.
+	\item DDIM allows to skip steps during sampling, leading to less overall steps and faster generation.
+\end{itemize}
+
+\textbf{Key Advantages}
+\begin{itemize}
+	\item \textbf{Accelerated Sampling:} Reduce steps from 1000 to 10-50 with minimal quality loss.
+	\item \textbf{Determinism:} Set $\sigma_t = 0$ for deterministic generation (same latent $z$ always produces same output).
+	\item \textbf{No Retraining:} Uses existing DDPM models directly.
+	\item \textbf{Semantically Meaningful Latent:} Interpolation in latent space produces smooth transitions.
+\end{itemize}
+
+\textbf{Trade-offs}
+\begin{itemize}
+	\item Fewer steps may reduce sample diversity if too aggressive.
+	\item Stochasticity-determinism trade-off: deterministic samples have less diversity but more consistency.
 \end{itemize}
 
 \subsection{Diffusion Model Architectures}
 
 \textbf{General Properties}
 \begin{itemize}
-    \item Input and output dimensions must match.
-    \item Highly flexible architecture choices (U-Net, Transformer backbones)
-    \item Conditioning information (time, text, camera, etc.) injected via embeddings.
+	\item Input and output dimensions must match.
+	\item Highly flexible architecture choices (U-Net, Transformer backbones)
+	\item Conditioning information (time, text, camera, etc.) injected via embeddings.
 \end{itemize}
 
 \textbf{U-Net Backbone}
 \begin{itemize}
-    \item Most common architecture for image diffusion.
-    \item Encoder-decoder with skip connections.
-    \item Time-step embeddings modulate intermediate layers.
+	\item Most common architecture for image diffusion.
+	\item Encoder-decoder with skip connections.
+	\item Time-step embeddings modulate intermediate layers.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/diffusion_unet.jpeg}
-    \label{fig:diffusion_unet}
+	\includegraphics[width=\columnwidth]{images/diffusion_unet.jpeg}
+	\label{fig:diffusion_unet}
 \end{center}
 
 
 \textbf{Transformer-Based Diffusion}
 \begin{itemize}
-    \item Replace U-Net with a Vision Transformer backbone.
-    \item Patchify images and treat diffusion as sequence modeling.
-    \item Strong scaling behavior with large datasets and models.
+	\item Replace U-Net with a Vision Transformer backbone.
+	\item Patchify images and treat diffusion as sequence modeling.
+	\item Strong scaling behavior with large datasets and models.
 \end{itemize}
 
 
@@ -129,59 +161,59 @@ Optimzie negative log-likelihood of training data:
 
 \textbf{Motivation}
 \begin{itemize}
-    \item Pixel-space diffusion is computationally expensive.
-    \item Latent diffusion operates in a compressed representation.
+	\item Pixel-space diffusion is computationally expensive.
+	\item Latent diffusion operates in a compressed representation.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/latent_diffusion.jpeg}
-    \label{fig:latent_diffusion}
+	\includegraphics[width=\columnwidth]{images/latent_diffusion.jpeg}
+	\label{fig:latent_diffusion}
 \end{center}
 
 
 \textbf{Two-Stage Training}
 \begin{enumerate}
-    \item Train an autoencoder (AE / VAE / VQ-VAE / VQ-GAN).
-    \item Perform diffusion in the learned latent space.
+	\item Train an autoencoder (AE / VAE / VQ-VAE / VQ-GAN).
+	\item Perform diffusion in the learned latent space.
 \end{enumerate}
 
 \begin{itemize}
-    \item Reduces memory and compute cost.
-    \item Enables high-resolution synthesis (e.g., Stable Diffusion).
+	\item Reduces memory and compute cost.
+	\item Enables high-resolution synthesis (e.g., Stable Diffusion).
 \end{itemize}
 
 \textbf{Findings:}
 \begin{itemize}
-    \item Latent diffusion for large-scale structure in images
-    \item Autoencoder/GAN for fine details and textures
+	\item Latent diffusion for large-scale structure in images
+	\item Autoencoder/GAN for fine details and textures
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/latent_diffusion_vs_gan.jpeg}
-    \label{fig:latent_diffusion_vs_gan}
+	\includegraphics[width=\columnwidth]{images/latent_diffusion_vs_gan.jpeg}
+	\label{fig:latent_diffusion_vs_gan}
 \end{center}
 \begin{itemize}
-    \item Condition latent diffusion model on text embeddings, class labels, or other modalities.
-    \item Enables powerful conditional generation (e.g., text-to-image).
-    \item More guidance improves training signal and sample quality.
+	\item Condition latent diffusion model on text embeddings, class labels, or other modalities.
+	\item Enables powerful conditional generation (e.g., text-to-image).
+	\item More guidance improves training signal and sample quality.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/latent_diffusion_conditioning.jpeg}
-    \label{fig:latent_diffusion_conditioning}
+	\includegraphics[width=\columnwidth]{images/latent_diffusion_conditioning.jpeg}
+	\label{fig:latent_diffusion_conditioning}
 \end{center}
 
 \subsection{Diffusion Transformers (DiT)}
 \begin{itemize}
-    \item Train on image patches and treat diffusion as sequence modeling.
-    \item Use transformer blocks with self-attention and cross-attention.
-    \item Scales well with model size and dataset size.
-    \item Achieves state-of-the-art image generation quality.
+	\item Train on image patches and treat diffusion as sequence modeling.
+	\item Use transformer blocks with self-attention and cross-attention.
+	\item Scales well with model size and dataset size.
+	\item Achieves state-of-the-art image generation quality.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/diffusion_transformer.jpeg}
-    \label{fig:diffusion_transformer}
+	\includegraphics[width=\columnwidth]{images/diffusion_transformer.jpeg}
+	\label{fig:diffusion_transformer}
 \end{center}
 \href{https://arxiv.org/abs/2212.09748}{Scalable Diffusion Models with Transformers, DiT, CVPR 2023}
 
@@ -190,110 +222,110 @@ Optimzie negative log-likelihood of training data:
 
 \textbf{Conditional Generation}
 \begin{itemize}
-    \item Model reverse process as $p_\theta(x_{t-1} \mid x_t, y)$.
-    \item Supports text-to-image, class-to-image, and other modalities.
+	\item Model reverse process as $p_\theta(x_{t-1} \mid x_t, y)$.
+	\item Supports text-to-image, class-to-image, and other modalities.
 \end{itemize}
 
 \textbf{Classifier-Free Guidance}
 \begin{itemize}
-    \item Randomly drop condition during training.
-    \item Intuition: takes steps towards fewer, higher-quality modes
-    \item At inference, combine conditional and unconditional predictions:
-    \[
-        \hat{\epsilon} = (1+\omega)\epsilon_\theta(x_t,t,y) - \omega \epsilon_\theta(x_t,t)
-    \]
-    \item Trades diversity for higher fidelity.
-    \item Most prominent: ControlNet
+	\item Randomly drop condition during training.
+	\item Intuition: takes steps towards fewer, higher-quality modes
+	\item At inference, combine conditional and unconditional predictions:
+	      \[
+		      \hat{\epsilon} = (1+\omega)\epsilon_\theta(x_t,t,y) - \omega \epsilon_\theta(x_t,t)
+	      \]
+	\item Trades diversity for higher fidelity.
+	\item Most prominent: ControlNet
 \end{itemize}
 
 \subsection{ControlNet}
 
 \begin{itemize}
-    \item Learn to control a pretrained model with an additional input condition $c$.
-    \item Copy weights from pretrained diffusion model and add trainable "zero-conv" blocks.
-    \item Zero-initialized convolutions ensure initial behavior matches pretrained model.
-    \item Train only the control branch on paired data $(x,c)$.
+	\item Learn to control a pretrained model with an additional input condition $c$.
+	\item Copy weights from pretrained diffusion model and add trainable "zero-conv" blocks.
+	\item Zero-initialized convolutions ensure initial behavior matches pretrained model.
+	\item Train only the control branch on paired data $(x,c)$.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/control_net.jpeg}
-    \label{fig:control_net}
+	\includegraphics[width=\columnwidth]{images/control_net.jpeg}
+	\label{fig:control_net}
 \end{center}
 
 \href{https://arxiv.org/abs/2302.05543}{[Adding Conditional Control to Text-to-Image Diffusion Models, ControlNet, CVPR 2023]}\\
 
 \textbf{Controlled Generation}
 \begin{itemize}
-    \item Adds spatial or structural conditions (edges, depth, poses).
-    \item Uses:
-    \begin{itemize}
-        \item \textbf{Frozen pretrained diffusion model}
-        \item \textbf{Trainable control branch}
-    \end{itemize}
-    \item Zero-initialized convolutions prevent early distortion.
-    \item Enables training with limited additional data.
+	\item Adds spatial or structural conditions (edges, depth, poses).
+	\item Uses:
+	      \begin{itemize}
+		      \item \textbf{Frozen pretrained diffusion model}
+		      \item \textbf{Trainable control branch}
+	      \end{itemize}
+	\item Zero-initialized convolutions prevent early distortion.
+	\item Enables training with limited additional data.
 \end{itemize}
 
 \subsection{Multi-View Diffusion Models (MVDiffusion)}
 
 \textbf{View-Consistent Image Generation}
 \begin{itemize}
-    \item Generate multiple views consistent with 3D geometry.
-    \item Conditioning via camera parameters (R, T) or ray-based encodings.
+	\item Generate multiple views consistent with 3D geometry.
+	\item Conditioning via camera parameters (R, T) or ray-based encodings.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/mvdiffusion.jpeg}
-    \label{fig:mvdiffusion}
+	\includegraphics[width=\columnwidth]{images/mvdiffusion.jpeg}
+	\label{fig:mvdiffusion}
 \end{center}
 
 \textbf{Representative Methods}
 \begin{itemize}
-    \item \textbf{Zero-1-to-3:} Finetunes image diffusion on view pairs.
-    \item \textbf{SyncDreamer:} Joint denoising of multiple views.
-    \item \textbf{CAT3D:} Camera conditioning using raymaps.
+	\item \textbf{Zero-1-to-3:} Finetunes image diffusion on view pairs.
+	\item \textbf{SyncDreamer:} Joint denoising of multiple views.
+	\item \textbf{CAT3D:} Camera conditioning using raymaps.
 \end{itemize}
 
 \subsection{Video Diffusion Models}
 
 \textbf{Temporal Generation}
 \begin{itemize}
-    \item Extend diffusion to spatio-temporal domains.
-    \item Key challenge: temporal consistency.
+	\item Extend diffusion to spatio-temporal domains.
+	\item Key challenge: temporal consistency.
 \end{itemize}
 
 \textbf{Latent Video Diffusion}
 \begin{itemize}
-    \item Operate in compressed video latent space.
-    \item Combine image and video pretraining.
-    \item Examples: Align Your Latents, MovieGen, Sora.
+	\item Operate in compressed video latent space.
+	\item Combine image and video pretraining.
+	\item Examples: Align Your Latents, MovieGen, Sora.
 \end{itemize}
 
 \textbf{Align your Latents}
 \begin{itemize}
-    \item Inject temporal information into latent diffusion.
-    \item Use temporal attention layers in U-Net.
-    \item Achieves high-quality video generation from text prompts.
+	\item Inject temporal information into latent diffusion.
+	\item Use temporal attention layers in U-Net.
+	\item Achieves high-quality video generation from text prompts.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/align_latents.jpeg}
-    \label{fig:align_latents}
+	\includegraphics[width=\columnwidth]{images/align_latents.jpeg}
+	\label{fig:align_latents}
 \end{center}
 
 
 \subsection{General Latent Design}
 Either use pre-trained image-based latend diffusion models or train directly on video latents.
 \begin{enumerate}
-    \item Pre-trained image-based LDM: \begin{itemize}
-        \item Can leverage massive amounts of pre-training
-        \item Issues in low-level temporal consistency
-    \end{itemize}
-    \item Train directly on video latents: \begin{itemize}
-        \item Better temporal consistency
-        \item Requires large-scale video datasets for training
-        \item However, no pre-trained models can be used (expensive)
-    \end{itemize}
+	\item Pre-trained image-based LDM: \begin{itemize}
+		      \item Can leverage massive amounts of pre-training
+		      \item Issues in low-level temporal consistency
+	      \end{itemize}
+	\item Train directly on video latents: \begin{itemize}
+		      \item Better temporal consistency
+		      \item Requires large-scale video datasets for training
+		      \item However, no pre-trained models can be used (expensive)
+	      \end{itemize}
 \end{enumerate}
 
 
@@ -301,77 +333,106 @@ Either use pre-trained image-based latend diffusion models or train directly on 
 Directly trained on video latents.
 \textbf{NOVA}
 \begin{itemize}
-    \item Generates videos frame-by-frame in latent space.
-    \item Uses optical flow for motion guidance.
-    \item More efficient and less error accumulation than diffusion-only approaches.
+	\item Generates videos frame-by-frame in latent space.
+	\item Uses optical flow for motion guidance.
+	\item More efficient and less error accumulation than diffusion-only approaches.
 \end{itemize}
 
-\textcolor{red}{Continue here}
 
 \subsection{3D-Aware Diffusion}
 \textbf{Explicit 3D Supervision}
 \begin{itemize}
-    \item Train diffusion models with 3D ground truth.
-    \item Example: DiffRF predicts radiance fields via diffusion.
+	\item Train diffusion models with 3D ground truth.
+	\item Example: DiffRF predicts radiance fields via diffusion.
 \end{itemize}
 
 \textbf{Latent 3D Gaussian Diffusion (L3DG)}
 \begin{itemize}
-    \item Diffusion in sparse latent space of 3D Gaussians.
-    \item Enables object- and scene-level 3D generation.
-    \item Scales to room-sized environments.
+	\item Diffusion in sparse latent space of 3D Gaussians.
+	\item Enables object- and scene-level 3D generation.
+	\item Scales to room-sized environments.
 \end{itemize}
 
 \subsection{Score Distillation Sampling (SDS)}
 
 \textbf{Text-to-3D via Diffusion Priors}
 \begin{itemize}
-    \item Use pretrained 2D diffusion models as supervision.
-    \item Optimize 3D representation by matching diffusion scores.
-    \item Introduced in DreamFusion.
+	\item Use pretrained 2D diffusion models as supervision.
+	\item Optimize 3D representation by matching diffusion scores.
+	\item Introduced in DreamFusion.
+	\item Slow: for each gradient step we need to perform a forward pass through the NeRF rendering.
 \end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/dream_fusion.jpeg}
+	\label{fig:dream_fusion}
+\end{center}
 
 \textbf{Follow-Up Work}
 \begin{itemize}
-    \item ProlificDreamer (variational SDS).
-    \item DreamGaussian (Gaussian-based 3D generation).
+	\item ProlificDreamer (variational SDS).
+	\item DreamGaussian (Gaussian-based 3D generation).
 \end{itemize}
 
 \subsection{World and Scene Generation}
+\textbf{Motivation}
+\begin{itemize}
+	\item Manual creation of scenes is labor-intensive and requires time and expertise.
+	\item Challenges  \begin{itemize}
+		      \item scale
+		      \item consistency
+		      \item detail
+		      \item context window: 3D scene diverge from previous views after a few steps (3D caching)
+	      \end{itemize}
+	\item Idea: leverage powerful 2D diffusion priors to generate 3D content.
+\end{itemize}
 
 \textbf{Leveraging 2D Priors for 3D Worlds}
 \begin{itemize}
-    \item Iteratively lift generated images into 3D.
-    \item Render-refine-repeat pipelines.
+	\item Iteratively lift generated images into 3D.
+	\item Render-refine-repeat pipelines.
 \end{itemize}
 
 \textbf{Representative Systems}
 \begin{itemize}
-    \item Text2Room
-    \item ControlRoom3D
-    \item WonderWorld
-    \item WorldExplorer
+	\item Text2Room
+	\item ControlRoom3D
+	\item WonderWorld
+	\item WorldExplorer
 \end{itemize}
+
+\textbf{Text2Room}
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/text2room.jpeg}
+	\label{fig:text2room}
+\end{center}
 
 \subsection{Camera-Controlled Video-to-3D}
 
 \textbf{Explicit Camera Conditioning}
 \begin{itemize}
-    \item Pixel-wise raymaps or Plücker coordinates.
-    \item Enables navigation and consistent viewpoint synthesis.
+	\item Pixel-wise raymaps or Plücker coordinates.
+	\item Enables navigation and consistent viewpoint synthesis.
 \end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/cameractrl.jpeg}
+	\label{fig:cameractrl}
+\end{center}
 
 \textbf{Key Methods}
 \begin{itemize}
-    \item CameraCtrl
-    \item ViewCrafter
-    \item GEN3C
+	\item CameraCtrl
+	\item ViewCrafter
+	\item GEN3C
 \end{itemize}
 
 \subsection{Discussion: Diffusion vs GANs}
 
 \begin{itemize}
-    \item Diffusion models require same input-output dimensionality.
-    \item GANs allow partial or indirect supervision.
-    \item Performance ultimately limited by training data quality and diversity.
+	\item Diffusion models require same input-output dimensionality.
+	\item Advantage on GANs: discrimminate on images where no 3D representation is available.
+	\item GANs allow partial or indirect supervision.
+	\item Diffusion models can not be trained on partial data, only optimized (e.g. use 2D Loss to push 3D diffusion: Distillation of pre-trained model)
+	\item For both: Performance ultimately limited by training data quality and diversity.
 \end{itemize}

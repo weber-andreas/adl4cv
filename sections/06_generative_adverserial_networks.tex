@@ -1,0 +1,239 @@
+
+\section{Generative Neural Networks}
+
+\textbf{Goal of Generative Modeling}
+\begin{itemize}
+	\item Maximize the likelihood of training data $\theta^* = \arg\max_{\theta} p(x | \theta)$
+	\item However, integrating over all possible hidden states (e.g. noise paths in diffusion) is intractable for some models.
+	\item Solve this by optimizing a variational lower bound or evidence lower bound (ELBO)
+\end{itemize}
+
+
+\subsection{Taxonomy of Generative Models}
+\textbf{Definition}
+Generative models are broadly categorized based on how they represent the probability density function.
+
+\textbf{\textcolor{orange}{Explicit Density}}\\
+Models that explicitly define the probability density function $p(x| \theta)$.
+\begin{itemize}
+	\item \textbf{Direct}: Autoregressive Models (PixelRNN, PixelCNN).
+	\item \textbf{Approximation} : Variational Autoencoders (VAEs).
+\end{itemize}
+
+\textbf{\textcolor{orange}{Implicit Density}}\\
+Models that do not explicitly define the density function. A function that output samples that are close to the training data without modelling the underlying distribution.
+\begin{itemize}
+	\item \textbf{Markov Chain}: Generative Stochastic Network (GSN) learns transition operator.
+	\item \textbf{Direct}: Generative Adversarial Networks (GAN).
+\end{itemize}
+
+\textbf{\textcolor{orange}{Hybrid}: DDPM}
+\begin{itemize}
+	\item Explicitly: optimization of a variational lower bound to approximate training data density.
+	\item Implicity: iteratively refining noise without requiring direct calculation of single density formula.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=0.8\columnwidth]{images/generative_models_overview.jpg}
+	\label{fig:generative_models_overview}
+\end{center}
+
+\subsection{Autoencoders and Variational Autoencoders}
+
+\textbf{Autoencoders}
+Consist of an encoder, a bottleneck layer, and a decoder.
+\begin{itemize}
+	\item Encoder maps input $x$ into latent space $z$, where $dim(z) < dim(x)$.
+	\item Decoder reconstructs output from the latent vector.
+\end{itemize}
+
+\textbf{Reconstruction Loss}
+Typically minimizes L2 (sum of squared distances).
+\begin{itemize}
+	\item \textbf{Limitation}: L2 distributes error equally, leading to an optimal mean.
+	\item \textbf{Result}: Often produces a blurry output.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/ae_blurry_l2_loss.jpeg}
+	\label{fig:ae_blurry_l2_loss}
+\end{center}
+
+\textbf{Variational Autoencoders (VAEs)}
+A probabilistic extension where the decoder functions as a generative model by reconstructing from a random vector sampled from $z$.
+
+\textbf{Loss Function}
+The VAE loss combines reconstruction quality and regularization:
+\[ \mathcal{L}(x^{(i)}, \theta, \phi) = \underbrace{\mathbb{E}_{z} [\log p_\theta(x^{(i)} | z)]}_{\text{Reconstruct the Input Data}} - \underbrace{D_{KL} (q_\phi(z | x^{(i)}) || p_\theta(z))}_{\text{KL Divergence}} \]
+
+\begin{itemize}
+	\item \textbf{KL Divergence:} forcing the learned latent distribution $q_\phi(z|x)$ to look like a standard normal distribution $p(z)$. This ensures the latent space is smooth and continuous, rather than just "memorizing" inputs
+	\item Note: $\phi$: are the parameters of the encoder network
+\end{itemize}
+
+
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/autoencoders.jpeg}
+	\label{fig:autoencoders}
+\end{center}
+
+\textbf{Decoder as Generative Model}
+\begin{itemize}
+	\item At test time: reconstruct a new output by sampling $z$ from random prior $p_\theta(z)$
+	\item This also allows interpolation in latent space between two encoded inputs.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=0.8\columnwidth]{images/interpolation_latent_space.jpeg}
+	\label{fig:interpolation_latent_space}
+\end{center}
+
+\subsection{Generative Adversarial Networks (GANs)}
+\begin{itemize}
+	\item Instead of applying L2 loss, GANs use a learned loss function via a discriminator network.
+	\item At test time: sample a latent random variable $z$ and obtain a generated sample $G(z)$.
+\end{itemize}
+
+\textbf{Overview}
+GANs rely on two competing networks:
+\begin{itemize}
+	\item \textbf{Generator (G)}: Generates fake data $G(z)$ from a latent random variable $z$.
+	\item \textbf{Discriminator (D)}: Distinguishes real images ($x$) from generated images.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/GAN.jpeg}
+	\label{fig:GAN}
+\end{center}
+
+\begin{enumerate}
+	\item Discriminator says fake
+	\item Compute gradients through Discriminator (but freeze its values)
+	\item Backpropagate through generator to change weights
+\end{enumerate}
+
+\textbf{Minimax Game}
+Training is a game where G attempts to minimize the probability that D is correct.
+\[ \min_G \max_D V(D,G) = \mathbb{E}_{x \sim p_{\text{data}}(x)}[\log D(x)] + \mathbb{E}_{z \sim p_z(z)}[\log(1 - D(G(z)))] \]
+
+\begin{center}
+	\includegraphics[width=0.8\columnwidth]{images/GAN_minimax.jpeg}
+	\label{fig:GAN_minimax}
+\end{center}
+
+
+\textbf{Training Principle}
+\begin{itemize}
+	\item \textbf{Alternating Updates}: Fix G while training D; fix D while training G.
+	\item \textbf{Heuristic Method}: Instead of standard minimization, G maximizes $\log D(G(z))$.
+	\item This prevents vanishing gradients when D is very strong (rejecting all samples).
+\end{itemize}
+
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/GAN_training_curves.jpg}
+	\label{fig:GAN_training_curves}
+\end{center}
+
+\begin{samepage}
+
+	\subsection{Training Challenges and Stabilization}
+	\textbf{Challenges}
+	\begin{itemize}
+		\item \textbf{Balance}: D and G must learn at similar rates \begin{itemize}
+			      \item If D is too strong: G receives no gradient signal (vanishing gradients).
+			      \item If G is too strong: D fails to learn, providing no useful feedback.
+			      \item We can not use a simple classifier for D, since G would quickly learn to fool D without producing meaningful results.
+		      \end{itemize}
+		\item \textbf{Mode Collapse}: Generator produces only a small subset of the training distribution.
+		\item \textbf{Structure}: Generated images often fail global structure checks (e.g., counting limbs).
+	\end{itemize}
+\end{samepage}
+
+
+\textbf{Stabilization Techniques (Hacks)}
+\begin{itemize}
+	\item \textbf{Normalization}: Inputs between -1 and 1; Tanh on generator output.
+	\item \textbf{Sampling}: Sample $z$ from Gaussian; interpolate via great circle.
+	\item \textbf{Optimizers}: ADAM for Generator, SGD for Discriminator.
+	\item \textbf{Label Smoothing}: Use one-sided smoothing (target $< 1$) to reduce D's confidence.
+	\item \textbf{Sparse Gradients}: Avoid by using LeakyReLU in both G and D.
+	\item \textbf{Weight Averaging}: Exponential averaging of weights for D.
+\end{itemize}
+
+\subsection{Wasserstein GAN (WGAN)}
+\textbf{Definition}
+\begin{itemize}
+	\item Reformulates GAN loss using the \textbf{Earth Mover Distance (EMD)} or Wasserstein Distance.
+	\item Use Critic instead of a Discriminator, which provides a linear gradient almost everywhere, even when distributions do not overlap.
+	\item Even when the Discriminator is optimal, the generator receives meaningful gradients to improve.
+\end{itemize}
+
+\textbf{1-Lipschitz Constraint}
+The critic function $f$ must change slowly and satisfy 1-Lipschitz continuity:
+\[ f(x_1) - f(x_2) \le |x_1 - x_2| \]
+\begin{itemize}
+	\item WGAN attempts to enforce this by restricting maximum weight values (weight clipping).
+	\item Wasserstein distance is based on the "cost" of moving probability mass.
+	\item Therby Generator is forced to cover the entire target distribution rather than finding a single point of failure in the Discriminator.
+\end{itemize}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Mitigates mode collapse.
+	\item Generator learns even when the critic is optimal.
+	\item Provides a meaningful convergence metric.
+\end{itemize}
+
+\textbf{Limitations:}
+\begin{itemize}
+	\item Enforcing Lipschitz is difficult.
+	\item Weight clipping can lead to slow training or vanishing gradients.
+\end{itemize}
+
+\subsection{Evaluation of Generative Models}
+
+\textbf{Inception Score (IS)}
+Measures two components using a pre-trained classifier:
+\begin{enumerate}
+	\item \textbf{Saliency}: Can images be classified with high confidence?
+	\item \textbf{Diversity}: Are samples obtained across all classes?
+\end{enumerate}
+
+\textbf{Frechet Inception Distance (FID)}
+Calculates feature distance between real and synthetic data distributions (modeled as multivariate Gaussians).
+\begin{itemize}
+	\item More robust to noise than IS.
+	\item Does not require class labels.
+\end{itemize}
+
+\subsection{Advanced Architectures}
+\textbf{Multiscale GAN}
+\begin{itemize}
+	\item Generates images progressively from low to high resolution.
+	\item Each scale has its own generator and discriminator.
+	\item Generator is conditioned on the upsampled version of the previous lower-resolution scale
+\end{itemize}
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/multiscale_GAN.jpeg}
+	\label{fig:multiscale_GAN}
+\end{center}
+
+\textbf{Progressive Growing GAN}
+\begin{itemize}
+	\item Starts training at low resolution and progressively adds layers to increase resolution.
+	\item Stabilizes training and improves quality.
+	\item This architecture is also used in StyleGAN.
+\end{itemize}
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/progressive_growing_GAN.jpeg}
+	\label{fig:progressive_growing_GAN}
+\end{center}
+
+\textbf{Summary}
+Besides GANs, other generative models are now more popular:
+\begin{itemize}
+	\item Diffusion Models
+	\item Autoregressive Models (like Vision Transformers or LLMs)
+\end{itemize}

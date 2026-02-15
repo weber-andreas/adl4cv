@@ -2,75 +2,106 @@
 
 \subsection{Siamese Network}
 \begin{itemize}
-    \item Idea: Train a network to learn a similarity function between two inputs
-    \item Architecture: Two identical subnetworks sharing weights, process the two inputs separately
-    \item Output: A distance metric (e.g., Euclidean distance) between the two feature vectors produced by the subnetworks
-    \item Loss Function: Contrastive Loss or Triplet Loss to encourage similar inputs to have smaller distances and dissimilar inputs to have larger distances
-    \item Applications: Face verification, signature verification
+	\item Idea: Train a network to learn a similarity function between two inputs
+	\item Architecture: Two identical subnetworks sharing weights, process the two inputs separately
+	\item Output: A distance metric (e.g., Euclidean distance) between the two feature vectors produced by the subnetworks
+	\item Loss Function: Contrastive Loss or Triplet Loss to encourage similar inputs to have smaller distances and dissimilar inputs to have larger distances
+	\item Applications: Face verification, signature verification
 \end{itemize}
 
 Distance function: $d(A,B) = \|f(A) - f(B)\|_2^2$
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/siamese_network_architecture.jpeg}
-    \label{fig:siamese_network_architecture}
+	\includegraphics[width=\columnwidth]{images/siamese_network_architecture.jpeg}
+	\label{fig:siamese_network_architecture}
 \end{center}
 
 \subsection{Visualization of ConvNets}
 
 \textbf{Visualization in the Image Space}
 \begin{itemize}
-    \item Layer 1: basic geometric shapes
-    \item Deeper Layers: more complex patterns and object parts
-    \item Deeper layer have a much higher resolution since they display the receptive field
+	\item Layer 1: basic geometric shapes
+	\item Deeper Layers: more complex patterns and object parts
+	\item Deeper layer have a much higher resolution since they display the receptive field
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/convnet_layers.jpeg}
-    \label{fig:convnet_layers}
+	\includegraphics[width=\columnwidth]{images/convnet_layers.jpeg}
+	\label{fig:convnet_layers}
 \end{center}
 
 
 \textbf{Visualize Importance: Occlusion Experiment}
 \begin{itemize}
-    \item block different parts in the image and see how classification score changes
-    \item heatmap shows which parts of the image are most important for classification (lower score = more important)
+	\item block different parts in the image and see how classification score changes
+	\item heatmap shows which parts of the image are most important for classification (lower score = more important)
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.8\columnwidth]{images/occlusion_experiment_1.jpeg}
-    \includegraphics[width=0.8\columnwidth]{images/occlusion_experiment_2.jpeg}
-    \label{fig:occlusion_experiment}
+	\includegraphics[width=0.8\columnwidth]{images/occlusion_experiment_1.jpeg}
+	\includegraphics[width=0.8\columnwidth]{images/occlusion_experiment_2.jpeg}
+	\label{fig:occlusion_experiment}
 \end{center}
 
 \subsection{Visualization of Clusters}
 \textbf{t-SNE: t-Distributed Stochastic Neighbor Embedding}
 \begin{itemize}
-    \item Non-linear dimensionality reduction technique
-    \item Maps high-dimensional data to a lower-dimensional space (typically 2D or 3D) while preserving pairwise distance of local points
-    \item Perplexity parameter controls the balance between local and global aspects of the data
-    \item Not useful for new data points (non-parametric)
+	\item Non-linear dimensionality reduction technique
+	\item Maps high-dimensional data to a lower-dimensional space (typically 2D or 3D)
+	\item While PCA or SVD capture global structure, t-SNE focuses on preserving local structure (similarity between nearby points)
+	\item Perplexity parameter controls the balance between local and global aspects of the data
+	\item Not useful for new data points (non-parametric)
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=0.8\columnwidth]{images/tsne_mnist.jpeg}
-    \label{fig:tsne_mnist}
+	\includegraphics[width=0.8\columnwidth]{images/tsne_mnist.jpeg}
+	\label{fig:tsne_mnist}
 \end{center}
 
 
 \subsection{Autoencoders and VAE}
 \textbf{Autoencoders}
 \begin{itemize}
-    \item Unsupervised approach for learning lower-dimensional feature representations
-    \item Consist of an encoder (maps input to latent space) and a decoder (reconstructs input from latent space)
-    \item Trained to minimize reconstruction error (e.g., Mean Squared Error)
-    \item Can be used for dimensionality reduction, de-noising, and generative modeling
-    \item Bottleneck layer: dim (latent space) << dim(input space)
+	\item Unsupervised approach for learning lower-dimensional feature representations
+	\item Consist of an encoder (maps input to latent space) and a decoder (reconstructs input from latent space)
+	\item Trained to minimize reconstruction error (e.g., Mean Squared Error)
+	\item Can be used for dimensionality reduction, de-noising, and generative modeling
+	\item Bottleneck layer: dim (latent space) << dim(input space)
 \end{itemize}
 
 \textbf{Variational Autoencoders (VAE)}
 \begin{itemize}
-    \item Probabilistic extension of autoencoders
-    \item Encoder outputs parameters of a probability distribution (mean and variance) instead of a single point in latent space
-    \item Latent space is continuous, allowing for smooth interpolation and generation of new samples
-    \item Loss function includes reconstruction error and a regularization term (Kullback-Leibler divergence) to ensure latent space follows a prior distribution (usually Gaussian)
+	\item Probabilistic extension of autoencoders
+	\item Encoder outputs parameters of a probability distribution (mean and variance) instead of a single point in latent space
+	\item Latent space is continuous, allowing for smooth interpolation and generation of new samples
+	\item Loss function includes reconstruction error and a regularization term (Kullback-Leibler divergence) to ensure latent space follows a prior distribution (usually Gaussian)
 \end{itemize}
+
+
+\textbf{Gradient Ascent for Visualizing CNN Filters}
+\begin{itemize}
+	\item Initialize with a random or zero image
+	\item Keep weights frozen and change the image via Gradient Ascent to visualize learned patterns of a CNN filter
+	\item Goal: Adapt the input image to maximize the activation of a specific filter, revealing the features that the filter responds to.
+	\item To visualize a specific CNN filter at a certain layer, isolate its output and treat it as objective function.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/CNN_fitler_activations.jpg}
+	\label{fig:CNN_fitler_activations}
+\end{center}
+
+\textbf{U-Net (Auto-Encoder)}
+\begin{itemize}
+	\item \textbf{Encoder}: Acts as the Feature Extractor
+	\item \textbf{Decoder}: Acts as a Projector to a specific task, such as reconstruction
+	\item \textbf{Bottleneck}: Passes high-level features through the deepest part of the network
+	\item \textbf{Skip-connections}: Passes low-level features to maintain fine details
+	\item \textbf{Gradient Flow}: Skip-connections solve the issue of vanishing gradients in deep NNs, leading to faster and more stable training
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/unet_architecture.png}
+	\label{fig:unet}
+\end{center}
+
+\newpage

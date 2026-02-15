@@ -1,199 +1,239 @@
 \section{3D Data Representation}
 
 \begin{itemize}
-    \item Explicit Representations: Voxel grids, Point Clouds, Polygonal Meshes
-    \item Implicit Representations: Signed Distance Functions (SDFs), Occupancy Networks
+	\item Explicit Representations: Voxel grids, Point Clouds, Polygonal Meshes
+	\item Implicit Representations: Signed Distance Fields (SDFs), Occupancy Fields, Neural Radiance Fields (NeRFs)
 \end{itemize}
 
 
 \subsection{Volumetric Grids}
-
-\textbf{Volumetric Data Structures}
 \begin{itemize}
-    \item Occupancy grids
-    \item Ternary grids (2-D triangular coordinate system, e.g., Barycentric coordinate)
-    \item (Signed) Distance fields
+	\item Discretize 3D space into regular grid of voxels
+	\item Each voxel can store data such as occupancy, color, or distance, density
 \end{itemize}
 
-Extension of AlexNet/2D CNNs to 3D CNNs by using 3D convolutional kernels:
+\textbf{Volumetric Data Structures:}
+\begin{itemize}
+	\item \textcolor{orange}{Occupancy Fields}: voxel is occupied or free (binary)
+	\item \textcolor{orange}{(Signed) Distance Fields (SDFs)}: Store distance to nearest surface, with sign indicating inside/outside.\\
+	      Gradients lead to surface.
+	\item \textcolor{orange}{Density Fields}: Store density values for volume rendering
+\end{itemize}
+
+\textbf{Applications:}
+\begin{itemize}
+	\item 3D Object Classification and Segmentation
+	\item 3D Reconstruction from Images
+	\item 3D Completion
+\end{itemize}
+
+
+\textbf{Summary:}
+\begin{itemize}[label={}] % empty default label
+	\item[+] Simple data structure
+	\item[+] Encode free space and distance fields
+	\item[+] Naturally extend 2D CNNs and other concepts
+	\item[+] Faster training due to an additional dimension per sample (but often lack 3D data)
+	\item[--] High memory consumption (cubic growth), a lot is used for empty space the higher the resolution
+	\item[--] Require a lot of processing time (use sliding window or fully-convolutions)
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=0.65\columnwidth]{images/3D_voxel_memory.jpeg}
+	\label{fig:3D_voxel_memory}
+\end{center}
+
+Extension of 2D CNNs to 3D CNNs by using 3D convolutional kernels:
 \href{https://arxiv.org/pdf/1604.03265}{Object Classification with 3DCNNs, 2016}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/3D_CNN.jpeg}
-    \label{fig:3D_CNN}
+	\includegraphics[width=\columnwidth]{images/3D_CNN.jpeg}
+	\label{fig:3D_CNN}
 \end{center}
-
-
-\textbf{Summary:}
-\begin{itemize}[label={}] % empty default label
-    \item[+] Simple data structure
-    \item[+] Encode free space and distance fields
-    \item[+] Naturally extend 2D CNNs and other concepts
-    \item[+] Faster training due to an additional dimension per sample (but often lack 3D data)
-    \item[--] High memory consumption (cubic growth), a lot is used for empty space the higher the resolution
-    \item[--] Require a lot of processing time (use sliding window or fully-convolutions)
-\end{itemize}
-
-\begin{center}
-    \includegraphics[width=0.65\columnwidth]{images/3D_voxel_memory.jpeg}
-    \label{fig:3D_voxel_memory}
-\end{center}
-
 
 \subsection{Volumetric Hierarchies}
-\textbf{Octrees}
-\begin{itemize}
-    \item Hierarchical data structure that recursively subdivides 3D space into eight octants (like a quadtree in 2D).
-    \item 3D partitioning: higher resolution at surfaces, lower resolution in empty space for applying 3DCNN kernels
-    \item Can be used for discriminative tasks (like object classification, segmentation) or generative tasks (like 3D reconstruction).
-\end{itemize}
+\textbf{Goal:} High resolution close to surface, low resolution far away.
+
+\begin{samepage}
+	\textbf{Octrees}
+	\begin{itemize}
+		\item Hierarchical data structure that recursively subdivides 3D space into eight octants (like a quadtree in 2D).
+		\item 3D partitioning: higher resolution at surfaces, lower resolution in empty space for applying 3DCNN kernels
+		\item Can be used for discriminative tasks (like object classification, segmentation) or generative tasks (like 3D reconstruction).
+	\end{itemize}
+\end{samepage}
 
 
 \textbf{Summary:}
 \begin{itemize}[label={}] % empty default label
-    \item[+] Great for reducing memory and runtime
-    \item[+] Increases strongly performance of 3D CNNs
-    \item[--] Easier for discriminative tasks when structure is known, more complex for generative tasks (split voxel that are partially occupied)
+	\item[+] Great for reducing memory and runtime
+	\item[+] Increases strongly performance of 3D CNNs
+	\item[--] Easier for discriminative tasks when structure is known, more complex for generative tasks (split voxel that are partially occupied)
 \end{itemize}
 
 
 \subsection{Hybrid: Volumetric + Multi-View}
 \begin{itemize}
-    \item Combine volumetric representation with multi-view images (colors) to improve segmentation
-    \item Separate 2D (image) and 3D (voxel) feature extraction + back-projection of 2D features into 3D space
+	\item Combine volumetric representation with multi-view images (colors) to improve segmentation
+	\item Separate 2D (image) and 3D (voxel) feature extraction + back-projection of 2D features into 3D space
 \end{itemize}
-\href{https://arxiv.org/pdf/1803.10409}{3DMV: 3D Voxel + Multi View Semantic Segmentation, 2016}
 
 \begin{center}
-    \includegraphics[width=0.65\columnwidth]{images/3D_and_multiview.jpeg}
-    \includegraphics[width=0.65\columnwidth]{images/3D_and_multiview_2.jpeg}
-    \label{fig:3D_and_multiview}
+	\includegraphics[width=0.65\columnwidth]{images/3D_and_multiview.jpeg}
+	\includegraphics[width=0.65\columnwidth]{images/3D_and_multiview_2.jpeg}
+	\label{fig:3D_and_multiview}
 \end{center}
+\href{https://arxiv.org/pdf/1803.10409}{3DMV: 3D Voxel + Multi View Semantic Segmentation, 2016}
 
 \textbf{Summary:}
 \begin{itemize}[label={}] % empty default label
-    \item[+] Nice way to combine color and geometry
-    \item[+] Good performance 
-    \item[--] End-to-End training helps less than expected
-    \item[--] Could be faster  
+	\item[+] Nice way to combine color and geometry
+	\item[+] Good performance
+	\item[--] End-to-End training helps less than expected
+	\item[--] Could be faster
 \end{itemize}
 
 \subsection{Point Clouds}
 \begin{itemize}
-    \item Unordered set of 3D points (often from LiDAR or depth sensors)
-    \item Each point can have additional features (e.g., color, intensity, normals)
-    \item Direct processing of point clouds using specialized neural networks (e.g., PointNet, PointNet++)
+	\item Properties: irregular, sparse, unordered
+	\item Often from LiDAR or depth sensors
+	\item Each point can have additional features (e.g., color, intensity, normals)
+	\item Direct processing of point clouds using specialized neural networks (e.g., PointNet, PointNet++)
 \end{itemize}
 
-\href{https://arxiv.org/pdf/1604.03265}{PointNet: 3D Classification and Segmentation for Point Clouds, 2017}
-    
 \begin{center}
-    \includegraphics[width=0.8\columnwidth]{images/pointnet_application.jpeg}
-    \label{fig:pointnet_application}
+	\includegraphics[width=0.8\columnwidth]{images/pointnet_application.jpeg}
+	\label{fig:pointnet_application}
 \end{center}
+\href{https://arxiv.org/pdf/1604.03265}{PointNet: 3D Classification and Segmentation for Point Clouds, 2017}
+
 
 \begin{itemize}
-    \item take $n$ points as input
-    \item apply feature transformations and aggregate features by max pooling
-    \item classification net: output scores for $k$ classes
-    \item segmentation net: concatenate global and local features for per-point classification
+	\item take $n$ points as input
+	\item use a T-Net to learn a spatial transformation to align the input points to a canonical space
+	\item project aligned points to a higher-dimensional feature space
+	\item classification net: output scores for $k$ classes
+	\item segmentation net: concatenate global and local features for per-point classification
 \end{itemize}
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/pointnet_architecture.jpeg}
-    \label{fig:pointnet_architecture}
+	\includegraphics[width=\columnwidth]{images/pointnet_architecture.jpeg}
+	\label{fig:pointnet_architecture}
 \end{center}
 
 \href{https://arxiv.org/pdf/1706.02413}{PointNet++: Deep Hierarchical Feature Learning on
-Point Sets in a Metric Space, 2017}
-    
+	Point Sets in a Metric Space, 2017}
+
 \begin{itemize}
-    \item learn hierarchical representation of point clouds
-    \item apply multiple PointNets at different locations and scales
-    \item multiscale grouping (MSG) and multi-resolution grouping (MRG) for local features
+	\item learn hierarchical representation of point clouds
+	\item apply multiple PointNets at different locations and scales
+	\item multiscale grouping (MSG) and multi-resolution grouping (MRG) for local features
 \end{itemize}
 
 
 \textbf{Point Convolutions}
 \begin{itemize}
-    \item Transform points to continuous representation using radial basis functions (RBFs) or kernel density estimation (KDE)
-    \item Apply convolutional operations on the continuous representation
+	\item Transform points to continuous representation using radial basis functions (RBFs) or kernel density estimation (KDE)
+	\item Apply convolutional operations on the continuous representation
 \end{itemize}
 
 \textbf{Point Transformer}
 \begin{itemize}
-    \item Use self-attention mechanisms to capture relationships between points
-    \item Learn point features by attending to neighboring points
+	\item Use self-attention mechanisms to capture relationships between points
+	\item Learn point features by attending to neighboring points
+	\item No explicit positional encoding needed as there is no natural orders
 \end{itemize}
 
 
 \subsection{Sparse Convolutional Networks}
 \begin{itemize}
-    \item Efficiently process sparse 3D data (e.g., point clouds, voxels with many empty spaces)
-    \item Use sparse convolutional operations that only compute on non-empty voxels
-    \item To improve efficiency, use sparse hashes (e.g. QSParseConv, MinkowskiEngine) instead of masking conv output
-    \item Latency on GPU for hash lookup is hidden by parallelism
+	\item Goal: Efficiently process sparse 3D data (e.g., point clouds, voxels with many empty spaces)
+	\item Method: \begin{itemize}
+		      \item Apply convolutional operations only on non-empty voxels
+		      \item Make use of sparse hashes instead of masking conv output
+		      \item Libraries: QSParseConv, MinkowskiEngine
+	      \end{itemize}
+	\item Latency on GPU for hash lookup is hidden by parallelism
 \end{itemize}
 
-\textbf{Summary:}
-\begin{itemize}[label={}] % empty default label
-    \item[+] Efficient representation, only store surface points
-    \item[+] Fast training and testing
-    \item[+] Cover large space in one shot
-    \item[--] Can not represent free space
-    \item[--] Perform worse than volumetric methods in some tasks (a lot ongoing research)
-\end{itemize}  
+\textbf{Uniform grid}
+\begin{itemize}
+	\item Dense, regularly--sampled grid over the whole domain
+	\item Easy indexing and interpolation
+	\item Memory and computation scale poorly with resolution
+	\item Wastes resources in empty or simple regions
+\end{itemize}
+
+\textbf{Sparse grid}
+\begin{itemize}
+	\item Only stores cells where signal / geometry is complex
+	\item Greatly reduces memory and compute, O(log(n)) access time
+	\item GPU compatible data structure
+	\item Established operations like sparse 3D convs
+	\item Requires hierarchical / hashed data structures
+	\item More complex to implement and query
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/uniform_sparse_grid.jpg}
+	\label{fig:uniform_sparsegrid}
+\end{center}
+
+\begin{samepage}
+	\textbf{Summary:}
+	\begin{itemize}[label={}] % empty default label
+		\item[+] Efficient representation, only store surface points
+		\item[+] Fast training and testing
+		\item[+] Cover large space in one shot
+		\item[--] Can not represent free space
+		\item[--] Perform worse than volumetric methods in some tasks (a lot ongoing research)
+	\end{itemize}
+\end{samepage}
 
 
 \subsection{Polygonal Meshes}
 \begin{itemize}
-    \item Represent 3D surfaces using vertices, edges, and faces (typically triangles or quadrilaterals)
-    \item Widely used in computer graphics and 3D modeling
-    \item Process via graph neural networks \begin{itemize}
-        \item Message Passing
-        \item Graph Convolutions
-        \item Transformers
-    \end{itemize} 
-    \item Process via specialized mesh convolutional networks \begin{itemize}
-        \item MeshCNN
-        \item Geodesic CNNs
-        \item Spectral CNNs
-    \end{itemize}
+	\item Represent 3D surfaces using vertices, edges, and faces (typically triangles or quadrilaterals)
+	\item Widely used in computer graphics and 3D modeling
+	\item Process via graph neural networks \begin{itemize}
+		      \item Message Passing
+		      \item Graph Convolutions
+		      \item Transformers
+	      \end{itemize}
+	\item Process via specialized mesh convolutional networks \begin{itemize}
+		      \item MeshCNN
+		      \item Geodesic CNNs
+		      \item Spectral CNNs
+	      \end{itemize}
 \end{itemize}
-    
 
-
-
-\subsection{Signed Distance Functions (SDFs)}
-
-\subsection{Occupancy Networks}
 
 \section{3D Datasets}
 
 \subsection{3D Shapes}
 \textbf{ShapeNet}
 \begin{itemize}
-    \item Main Dataset, synthetic 3D models
-    \item 51.3k shapes, 55 classes
-    \item mostly chairs, mediocre textures
+	\item Main Dataset, synthetic 3D models
+	\item 51.3k shapes, 55 classes
+	\item mostly chairs, mediocre textures
 \end{itemize}
 
 \textbf{Objaverse-XL}
 \begin{itemize}
-    \item 10mio 3D shapes
-    \item heterogeneous distributed
+	\item 10mio 3D shapes
+	\item heterogeneous distributed
 \end{itemize}
 
 \subsection{3D Scenes}
 \textbf{3D-FRONT}
 \begin{itemize}
-    \item furnished rooms with layouts and semantics
-    \item 18k rooms, 7k furniture objects
+	\item furnished rooms with layouts and semantics
+	\item 18k rooms, 7k furniture objects
 \end{itemize}
 
 \textbf{ScanNet}
 \begin{itemize}
-    \item Kinect-style reconstructions of indoor scenes
-    \item 1.5k scenes, 2.5 million views
-    \item Semantic and instance annotations
-    \item from TUM, with standardized evaluation benchmark
+	\item Kinect-style reconstructions of indoor scenes
+	\item 1.5k scenes, 2.5 million views
+	\item Semantic and instance annotations
+	\item from TUM, with standardized evaluation benchmark
 \end{itemize}

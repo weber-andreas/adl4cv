@@ -1,0 +1,148 @@
+\newpage
+\section{HyperNetworks and Hyperdiffusion}
+
+\begin{itemize}
+	\item Use a network (HyperNetwork) to generate the weights of another network (Target Network).
+	\item Enables parameter-efficient learning, multi-task learning, and dynamic weight generation.
+\end{itemize}
+
+\textbf{Idea}
+\begin{itemize}
+	\item Instead of directly learning the parameters $\theta$ of a model, learn a function $H$ that maps some input (e.g., task embedding) to $\theta$: $\theta = H(z)$.
+	\item The HyperNetwork $H$ can be a simple MLP or a more complex architecture depending on the application.
+	\item Instead of storing a massive set of fixed weights for a large network, you store a much smaller "controller" network that generates weights on the fly.
+	\item This allows a model to have a high "effective" number of parameters while maintaining a small memory footprint.
+\end{itemize}
+
+\textbf{Bridge to HyperDiffsuion}
+\begin{itemize}
+	\item Generate weights that represent the implicit neural occupancy field of a 3D shape.
+	\item Use a diffusion model to learn the distribution of these weights across a dataset of shapes, enabling the generation of new shapes by sampling in weight space.
+\end{itemize}
+\vspace{0.3cm}
+\hrule
+\vspace{0.3cm}
+\subsection{Hyperdiffusion}
+
+\subsubsection{Methodology}
+\begin{enumerate}
+	\item \textbf{MLP Overfitting}: Each object (3D or 4D) in the dataset is represented by its own dedicated MLP.
+	\item \textbf{Training}: The MLP is trained to perfectly reproduce that specific object's occupancy field.
+	\item \textbf{Weight-Space Diffusion}: A diffusion model is trained directly on these MLP weights, which are flattened into 1D vectors.
+	\item \textbf{Transformer Backbone}: A transformer architecture is utilized to manage the high-dimensional weight vectors during the denoising process.
+	\item \textbf{Inference}: During generation, random noise in the weight space is gradually denoised to produce new MLP parameters corresponding to novel shapes.
+\end{enumerate}
+\href{https://arxiv.org/abs/2303.17015}{HyperDiffusion: Generating Implicit Neural Fields with Convolutional Hypernetworks, Erkoç et al., ICCV 2023}
+
+
+\subsubsection{Architecture}
+\textbf{Architecture of Overfitted MLPs}:
+\begin{itemize}
+	\item \textbf{Hidden Layers}: 3 layers.
+	\item \textbf{Hidden Width}: 128 neurons per layer.
+	\item \textbf{Inputs}: Input dimension depends on data dimensionality (e.g., $(x,y,z)$ or $(x,y,z,t)$).
+\end{itemize}
+
+\subsubsection{Architecture of Weight-Space Diffusion}
+\begin{itemize}
+	\item \textbf{Embedding Size}: 2880
+	\item \textbf{Heads}: 16 Heads
+	\item \textbf{Layers}: 12 layers
+	\item \textbf{Split Policy}: Layer-by-layer
+\end{itemize}
+
+
+\textbf{Datasets}:
+\begin{itemize}
+	\item \textbf{3D}: ShapeNet categories including airplanes, cars, and chairs.
+	\item \textbf{4D}: DeformingThings4D dataset containing 16-frame animated animals.
+\end{itemize}
+
+\textbf{Metrics}:
+\begin{itemize}
+	\item \textbf{MMD $\downarrow$} (Minimum Matching Distance): Measures Fidelity (Quality of the images). Calculates the average distance between every point in the reference (GT) set and its nearest neighbor in the generated set.
+	\item \textbf{COV $\uparrow$} (Coverage): Measures Diversity (Variety of the generated samples). Calculates the percentage of points in the reference set that are within a certain distance of any point in the generated set.
+	\item \textbf{1-NNA $50\%$} (1-Nearest-Neighbor Accuracy): Overall distribution similarity. Taking a mix of real and generated shapes, for each shape we find the closest neighbor. If accuracy is $50\%$ this means the real and generated shapes are perfectly mixed and classifier can not differentiate them.
+	\item \textbf{FPD $\downarrow$} (Frechet PointNet++ Distance): Perceptual Quality. Pass points through a pre-trained PointNet++ network to extract high-level features and calculates the distance between distribution of these features.
+\end{itemize}
+
+\textbf{Results}:
+\begin{itemize}
+	\item Outperforms baselines like Point-Voxel Diffusion in perceptual quality (FPD).
+	\item Produces smoother, temporally consistent 4D animations compared to voxel-based models.
+	\item Demonstrates the ability to generate novel, non-memorized shapes.
+\end{itemize}
+
+\textbf{Limitations}:
+\begin{itemize}
+	\item \textbf{Geometry Blindness}: Diffusion operates on weights without direct awareness of the resulting 3D/4D geometry.
+	\item \textbf{Scalability}: Does not yet handle large-scale scene-level representations.
+	\item \textbf{Future Work}: Integration of reconstruction-aware diffusion could significantly improve geometric accuracy.
+\end{itemize}
+\vspace{0.3cm}
+\hrule
+\vspace{0.3cm}
+\subsection{Semantic HyperDiffusion}
+
+\subsubsection{Related Work}
+\textbf{StructLDM} (ICCV, 2024)
+\begin{itemize}
+	\item Diffusion over structured space representing distinct parts of a 3D human body
+	\item Part-aware encoder learned to optimize structured latent for each subject
+	\item Increase semantic capture and controllability of output
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/structLDM.png}
+	\label{fig:structLDM}
+\end{center}
+
+\textbf{Hyper Diffusion Avatars} (CVPR, 2025)
+\begin{itemize}
+	\item Optimize a set of person-specific U-Nets, representing a dynamic human avatar
+	\item Train a diffusion model to sample novel dynamic human avatars that look photorealistic
+	\item Diffusion transformer learns the correlation between early layers (geometry) and later layers (appearance/details)
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/hyper_diffusion_avatars.png}
+	\label{fig:hyper_diffusion_avatars}
+\end{center}
+
+\textbf{Weight Space Representation Learning with Neural Fields} (CVPR, 2025)
+\begin{itemize}
+	\item Base neural field from an MLP is adapted via multiplicative LoRA weights
+	\item LoRA weights form a structured representation in weight space
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/weight_space_representation_learning.png}
+	\label{fig:weight_space_rep}
+\end{center}
+
+\subsubsection{Architecture}
+\textbf{Architecture of Overfitted MLPs}:
+\begin{itemize}
+	\item \textbf{Hidden Layers}: 3 layers.
+	\item \textbf{Hidden Width}: 60 neurons per layer.
+	\item \textbf{Num Experts}: 4 experts
+	\item \textbf{Inputs}: 3D Input coordinates $(x,y,z)$.
+	\item \textbf{Outputs}: Occupancy
+\end{itemize}
+
+\textbf{Training}:
+\begin{itemize}
+	\item \textbf{Loss}: Binary Cross-Entropy Loss.
+	\item \textbf{Batch Size/Epochs}: 2048 points, 1000 epochs, 7 Minutes per MLP.
+	\item \textbf{Optimizer}: Adam with learning rate $10^{-5}$.
+\end{itemize}
+
+
+\subsubsection{Architecture of Weight-Space Diffusion}
+\begin{itemize}
+	\item Diffusion and transformer architecture modified versions of OpenAI and miniGPT implementations.
+	\item \textbf{Embedding Size}: 768
+	\item \textbf{Heads}: 16 Heads
+	\item \textbf{Layers}: 12 layers
+	\item \textbf{Split Policy}: Part-by-part and then Layer-by-layer
+\end{itemize}

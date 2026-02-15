@@ -1,177 +1,235 @@
+\newcolumn
 \section{Neural Radiance Fields (NeRF)}
 \begin{itemize}
-    \item Neural Radiance Field (NeRF) is a neural network-based representation for 3D scenes that encodes both geometry and appearance.
-    \item Enables photo-realistic novel view sybnthesis from a sparse set of input images.
-    \item Now-standard approach to neural volumetric rendering.
+	\item Neural network-based representation for 3D scenes that encodes both geometry and appearance.
+	\item Enables photo-realistic novel view synthesis from a sparse set of 2D input images.
 \end{itemize}
 \href{https://arxiv.org/abs/2003.08934}{Neural Radiance Fields (NeRF), Mildenhall et al., ECCV 2020}
 
-\subsection{Core Idea}
+\textbf{Core Idea}
 \begin{itemize}
-    \item NeRF represents a scene as a continuous 5D function:
-    \[
-    F_\theta : (x,y,z,\theta,\phi) \rightarrow (\sigma, \mathbf{c})
-    \]
-    \item 5D Input:
-    \begin{itemize}
-        \item $(x,y,z)$: 3D position
-        \item $(\theta,\phi)$: viewing direction
-    \end{itemize}
-    \item Outputs (MLP):
-    \begin{itemize}
-        \item $\mathbf{c}$: emitted color at sample point perceived from direction
-        \item $\sigma$: volume density (chance of absorption at specific location)
-    \end{itemize}
-    \item Volumetric rendering allows to reconstruct the final image using sampled points along camera rays.
-    \item All steps are end-to-end differentiable, allowing training via gradient descent.
+	\item NeRF represents a scene as a continuous probability function:
+	      \[
+		      F_\theta : (x,y,z,\theta,\phi) \rightarrow (\sigma, \mathbf{c})
+	      \]
+	\item \textbf{5D Input}:
+	      \begin{itemize}
+		      \item $(x,y,z)$: 3D position
+		      \item $(\theta,\phi)$: 2D camera viewing direction
+	      \end{itemize}
+	\item \textbf{Outputs}:
+	      \begin{itemize}
+		      \item $\mathbf{c}$: emitted color at sample point perceived from direction
+		      \item $\sigma$: volume density (chance of absorption at specific location)
+	      \end{itemize}
+\end{itemize}
+
+\vspace{0.3cm}
+\hrule
+\vspace{0.3cm}
+
+\textbf{Method}
+\begin{itemize}
+	\item \textbf{Ray Casting}: To render a pixel, cast a ray from the camera into the scene.
+	\item \textbf{Neural Rendering:} Sample points along ray  and query MLP for color and density at certain point.
+	\item \textbf{Volume Rendering:} Blend colors and densities together of the sampled points to compute the final pixel color.
+	\item All steps are end-to-end differentiable, allowing training via gradient descent.
+	\item \textbf{Downside:} Rendering is slow due to many MLP evaluations per ray.
+\end{itemize}
+
+\textbf{Inference:}
+\begin{itemize}
+	\item For full-HD image: $1920 \times 1080 = 2$ Mio. pixels
+	\item $N=128$ samples per ray $\Rightarrow$ 256 Mio. MLP evaluations per image (full MLP forward pass)
+\end{itemize}
+
+\textbf{Training:}
+\begin{itemize}
+	\item Use positional encoding to map input coordinates [x, y, z] to a higher-dimensional space. \\
+	      Important to resolve spectral biases (smoothing of neighboring pixels) and focus on details.
+	\item Optimization involves also image rendering + additional loss computation and backpropagation
+	\item Pixel-wise MSE Loss: $\mathcal{L} = \frac{1}{N} \sum_{i=1}^{N} \left\| \hat{C}(p_i) - C(p_i) \right\|^2_2$
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/NeRF_function.jpeg}
-    \label{fig:NeRF_function}
+	\includegraphics[width=\columnwidth]{images/NeRF_function.jpeg}
+	\label{fig:NeRF_function}
 \end{center}
 
+\subsection{Radiance Fields and Depth/Normals}
+
 \begin{itemize}
-    \item Neural: Use a Neural Network as scene representation instead of explicit data structures.
-    \item Volumetric: continuous, differentiable rendering model without concrete surface representation (similar to a cloud of particles).
-    \item Rendering: compute color along rays through 3D space.
+	\item Leverage NeRF for volumetric rendering of RGB image
+	\item Also possible to extract depth and normal maps from the radiance field:
+	      \begin{itemize}
+		      \item Depth: Compute expected depth along ray using rendering weights as a probability distribution.
+		      \item Normals: Compute spatial gradients of the density field $\sigma$ to get surface normals.
+	      \end{itemize}
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=0.8\columnwidth]{images/NeRF_bunny.jpeg}
-    \label{fig:NeRF_bunny}
+	\includegraphics[width=\columnwidth]{images/NeRF_general_architecture.jpeg}
+	\label{fig:NeRF_general_architecture}
+\end{center}
+
+% \vspace{0.3cm}
+% \hrule
+% \vspace{0.3cm}
+\textbf{Naming: Neural Volumetric Rendering}
+\begin{itemize}
+	\item \textbf{Neural}: Use a Neural Network as scene representation instead of explicit data structures.
+	\item \textbf{Volumetric}: continuous, differentiable rendering model without concrete surface representation (similar to a cloud of particles).
+	\item \textbf{Rendering}: compute color along rays through 3D space.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=0.8\columnwidth]{images/NeRF_bunny.jpeg}
+	\label{fig:NeRF_bunny}
 \end{center}
 
 \subsection{Probabilistic Interpretation}
-
 \begin{itemize}
-    \item Ray traveling through scene hits a particle at distance $t$, where color $c(t)$ returned.
-    \item Probability of hitting a particle at small interval $dt$ at distance $t$: $\sigma(t) dt$
-    \item Probability of not hitting any particle before distance $t$ (Transmittance): $T(t)$
+	\item Ray traveling through scene hits a particle at distance $t$, where color $c(t)$ returned.
+	\item Probability of hitting a particle at small interval $dt$ at distance $t$: $\sigma(t) dt$
+	\item Probability of not hitting any particle before distance $t$ (Transmittance): $T(t)$
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.9\columnwidth]{images/NeRF_probabilistic1.jpeg}
-    \label{fig:NeRF_probabilistic}
+	\includegraphics[width=0.9\columnwidth]{images/NeRF_probabilistic1.jpeg}
+	\label{fig:NeRF_probabilistic}
 \end{center}
 \begin{itemize}
-    \item P[no hit before t + dt] = P[no hit before t] * P[no hit at t]
-    \item $T(t + dt) = T(t) * (1 - \sigma(t) dt)$
+	\item P[no hit before t + dt] = P[no hit before t] * P[no hit at t]
+	\item $T(t + dt) = T(t) * (1 - \sigma(t) dt)$
 \end{itemize}
 \[
-T(t+dt) = T(t)\bigl(1 - \sigma(t)\,dt\bigr)
+	T(t+dt) = T(t)\bigl(1 - \sigma(t)\,dt\bigr)
 \]
 Solve via Taylor Expansion:
 \[
-T(t+dt) \approx T(t) + T'(t)\,dt = T(t) - T(t)\sigma(t)\,dt
+	T(t+dt) \approx T(t) + T'(t)\,dt = T(t) - T(t)\sigma(t)\,dt \]
+\[
+	\frac{T'(t)}{T(t)}\,dt = -\sigma(t)\,dt
 \]
 \[
-\frac{T'(t)}{T(t)}\,dt = -\sigma(t)\,dt
+	\int_{t_0}^{t} \frac{T'(s)}{T(s)}\,ds = -\int_{t_0}^{t} \sigma(s)\,ds \]
+\[
+	\log T(t) = -\int_{t_0}^{t} \sigma(s)\,ds
 \]
 \[
-\int_{t_0}^{t} \frac{T'(s)}{T(s)}\,ds = -\int_{t_0}^{t} \sigma(s)\,ds
-\]
-\[
-\log T(t) = -\int_{t_0}^{t} \sigma(s)\,ds
-\]
-\[
-T(t) = \exp\!\left( -\int_{t_0}^{t} \sigma(s)\,ds \right)
+	T(t) = \exp\!\left( -\int_{t_0}^{t} \sigma(s)\,ds \right)
 \]
 This gives P[first hit at t]:
 \[
-p(t) = T(t) \ * \sigma(t)dt
+	p(t) = T(t) \ * \sigma(t)dt
 \]
 To get the expected color returned by the ray, we need to integrate over all sampling points $t_i$ along the ray:
 \[
-C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt
+	C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt
 \]
 Note the nested integral, since $T(t)$ itself is an integral over density $\sigma(s)$.
 
 \subsection{Discrete Integration (Approximation)}
 Sampling at discrete points $t_i$ along the ray:
 \[
- C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt \approx \sum_{i=1}^{N} T_i \, \alpha_i \, c_i
+	C = \int_{t_0}^{t_n} T(t) \, \sigma(t) \, c(t) \, dt \approx \sum_{i=1}^{N} T_i \, \alpha_i \, c_i
 \]
 This is differentiable w.r.t. $c$, $\sigma$.
 Where: $\alpha_i$ are the length of the integral at sample point $t_i$:
 
 \begin{center}
-    \includegraphics[width=0.75\columnwidth]{images/NeRF_probabilistic_discrete.jpeg}
-    \label{fig:NeRF_probabilistic_discrete}
+	\includegraphics[width=0.75\columnwidth]{images/NeRF_probabilistic_discrete.jpeg}
+	\label{fig:NeRF_probabilistic_discrete}
 \end{center}
 
 How much light is blocked earlier along the ray:
 \[
-T_i = \prod_{j=1}^{i-1} (1 - \alpha_j)
+	T_i = \prod_{j=1}^{i-1} (1 - \alpha_j)
 \]
 How much light is contributed by ray segment $i$:
 \[
-\alpha_i = 1 - \exp(-\sigma_i \delta_i)
+	\alpha_i = 1 - \exp(-\sigma_i \delta_i)
 \]
 
 Since the rendering weights $T_i$ and $\alpha_i$ are dependent on the points AND viewing direction:
 \[
-C \approx \sum_{i=1}^{N} \color{red}{T_i} \, \color{red}{\alpha_i} \, \color{black}{c_i}
+	C \approx \sum_{i=1}^{N} \color{red}{T_i} \, \color{red}{\alpha_i} \, \color{black}{c_i}
 \]
 \[
-w_i = T_i \, \alpha_i
+	w_i = T_i \, \alpha_i
 \]
 
-\textbf{Rendering Weight PDF}:
+\textbf{Computation of Expected Depth}:
 The distribution of weights can be used to compute expected depth and uncertainty:
 \[
-\bar{t} = \sum_{i=1}^{N}  w_i \, t_i
+	\bar{t} = \sum_{i=1}^{N}  w_i \, t_i
 \]
-where $t_i$ is just the from the camera to the sample point $i$.
-
-\subsection{General Architecture}
-\begin{center}
-    \includegraphics[width=\columnwidth]{images/NeRF_general_architecture.jpeg}
-    \label{fig:NeRF_general_architecture}
-\end{center}
-However, MLP are not required. There are works that use spares voxel grids and spherical harmonics.
-\begin{center}
-    \includegraphics[width=\columnwidth]{images/NeRF_alternative.jpeg}
-    \label{fig:NeRF_alternative}
-\end{center}
+where $t_i$ is the distance from the camera to the sample point $i$.
 
 \subsection{Advantages}
 \begin{itemize}
-    \item Continuous, high-resolution scene representation.
-    \item High-quality novel-view synthesis with realistic lighting and specularities.
-    \item Compact representation: scene stored in MLP weights.
+	\item Continuous, high-resolution scene representation.
+	\item High-quality novel-view synthesis with realistic lighting and specularities.
+	\item Compact representation: scene stored in MLP weights.
 \end{itemize}
-
 
 \subsection{Limitations (Original NeRF)}
 \begin{itemize}
-    \item Slow training and rendering due to MLP evaluations on every ray sample.
-    \item Challenges with unknown or inaccurate camera poses
-    \item Dynamic scenes and dynamic lighting are complicated to model.
+	\item Slow training and rendering due to MLP evaluations on every ray sample.
+	\item Challenges with unknown or inaccurate camera poses
+	\item Dynamic scenes and dynamic lighting are complicated to model.
 \end{itemize}
 
 \begin{center}
-    \includegraphics[width=0.75\columnwidth]{images/NeRF_inaccurate_camera_poses.jpeg}
-    \label{fig:NeRF_inaccurate_camera_poses}
+	\includegraphics[width=0.75\columnwidth]{images/NeRF_inaccurate_camera_poses.jpeg}
+	\label{fig:NeRF_inaccurate_camera_poses}
 \end{center}
 
 \textbf{Appearance Embedding}
-Serves as a robust solution to learn a latent representation of varying appearance conditions (lighting, weather, etc.)
+Serves as a robust solution to learn a latent representation of varying appearance conditions (lighting, weather, moving pedestrains).
+\begin{itemize}
+	\item Instead of forcing MLP to learn a blurry average of all appearances, learn a latent code that captures the variations in appearance across different images.
+	\item Latent code is just a unique and random low-dimensional latent vector for each image stored in a look-up table, which is optimized during training.
+	\item During training, optimize both the MLP parameters and the latent codes for each image, allowing the model to disentangle geometry from appearance variations.
+	\item This allows also interpolation between latent codes to generate scenes with novel appearances
+\end{itemize}
+
 \begin{center}
-    \includegraphics[width=\columnwidth]{images/NeRF_apperance_embedding.jpeg}
-    \label{fig:NeRF_apperance_embedding}
+	\includegraphics[width=\columnwidth]{images/NeRF_apperance_embedding.jpeg}
+	\label{fig:NeRF_apperance_embedding}
 \end{center}
+
 
 \subsection{NeRFs vs 3D Meshes}
 NeRFs are good for \textbf{Reconstruction}:
 \begin{itemize}
-    \item Optimization-based
-    \item Need good gradients
-    \item Not just for surface representation but also for depth, normals
+	\item Optimization-based
+	\item Not just for surface representation but also for depth, normals
+	\item photo-realistic rendering with view-dependent effects (specularities, reflections)
 \end{itemize}
 
 3D Meshes are good for \textbf{Rendering}:
 \begin{itemize}
-    \item Fast rendering of surfaces (only)
-    \item Efficient
-    \item No gradients needed
+	\item Triangles can be rendered very efficiently on GPU (parallelization)
+	\item Barycentric interpolation for colors
+	\item 2D imag can also be warped around triangles
+	\item No gradients needed
+\end{itemize}
+
+\subsection{Plenoxels for NeRF-Quality without MLP}
+\begin{itemize}
+	\item MLP are not required
+	\item There are works that use spares voxel grids and spherical harmonics.
+\end{itemize}
+
+\begin{center}
+	\includegraphics[width=\columnwidth]{images/NeRF_alternative.jpeg}
+	\label{fig:NeRF_alternative}
+\end{center}
+
+\begin{itemize}
+	\item Instead of using a MLP to represent the scene, use a sparse voxel grid where each voxel stores color and density information.
+	\item Use spherical harmonics to represent view-dependent effects (like specular highlights) within each voxel.
+	\item This allows for fast rendering while still achieving NeRF-level quality.
+	\item However, a lot of memory is used by the voxel grid for storing empty space
+	\item Gaussian Splatting took this idea to get rid of MLP but swapped rigid grid by flexible Gaussians.
 \end{itemize}
